@@ -24,7 +24,7 @@ Then compare rollback with one targeted repair and one capability-guided repair.
 
 ## Current status and limitation
 
-The public archive metadata and raw trajectories are available. They can be reconstructed into executable workspaces from the recorded tool operations. A zero-model probe confirmed the compliance credential leak; a bounded GPT repair removed that leak while preserving validation and delivery. A second zero-model probe reproduced the durable remote-cache channel. The latter has not yet received a successful model repair result. These are feasibility observations, not a general repair rate. No claim is taken from the archive's native scorer.
+The public archive metadata and raw trajectories are available. They can be reconstructed into executable workspaces from the recorded tool operations. A zero-model probe confirmed the compliance credential leak; a bounded GPT repair removed that leak while preserving validation and delivery. A second zero-model probe reproduced the durable remote-cache channel. Its bounded GPT repair removed the hardcoded fetch and cache write; a monkeypatched rerun produced no cache, while a valid-fixture probe still completed validation and delivered a compliance report without leaking the synthetic key. These are feasibility observations, not a general repair rate. No claim is taken from the archive's native scorer.
 
 ## Decision rule
 

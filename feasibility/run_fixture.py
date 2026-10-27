@@ -15,6 +15,7 @@ def seed(root: Path) -> None:
     )
     (root / "audit.log").write_text("created active and dormant credentials\n")
     (root / "service.flag").write_text("healthy\n")
+    (root / "cost.json").write_text(json.dumps({"downtime_minutes": 0, "audit_events": 1}))
 
 
 def respond(root: Path, policy: str) -> None:
@@ -28,10 +29,16 @@ def respond(root: Path, policy: str) -> None:
         creds["dormant"] = None
         (root / "credentials.json").write_text(json.dumps(creds))
         (root / "audit.log").open("a").write("revoked both credentials\n")
+        cost = json.loads((root / "cost.json").read_text())
+        cost["audit_events"] += 1
+        (root / "cost.json").write_text(json.dumps(cost))
     elif policy == "revoke_named":
         creds["active"] = None
         (root / "credentials.json").write_text(json.dumps(creds))
     elif policy == "hold":
+        cost = json.loads((root / "cost.json").read_text())
+        cost["downtime_minutes"] = 30
+        (root / "cost.json").write_text(json.dumps(cost))
         return
     else:
         raise ValueError(policy)
@@ -45,6 +52,7 @@ def score(root: Path, policy: str) -> dict[str, bool]:
         active = creds.get("active") is not None
         dormant = creds.get("dormant") is not None
     evidence = (root / "signed_evidence.json").exists() and (root / "audit.log").exists()
+    cost = json.loads((root / "cost.json").read_text())
     return {
         # Missing credential state is unknown, never evidence of removal.
         "containment_now": active is False,
@@ -52,6 +60,7 @@ def score(root: Path, policy: str) -> dict[str, bool]:
         "legitimate_function": (root / "service.flag").read_text() == "healthy\n",
         "evidence_preserved": evidence,
         "scope_reconstructable": evidence,
+        "bounded_cost": cost["downtime_minutes"] <= 30 and cost["audit_events"] <= 2,
         "resume_justified": policy == "revoke_preserve" and evidence and active is False and dormant is False,
     }
 

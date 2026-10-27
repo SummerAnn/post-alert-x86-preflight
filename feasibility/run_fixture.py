@@ -51,12 +51,20 @@ def score(root: Path, policy: str) -> dict[str, bool]:
         creds = json.loads(cred_path.read_text())
         active = creds.get("active") is not None
         dormant = creds.get("dormant") is not None
-    evidence = (root / "signed_evidence.json").exists() and (root / "audit.log").exists()
+    evidence = False
+    snapshot = root / "signed_evidence.json"
+    if snapshot.exists() and (root / "audit.log").exists():
+        try:
+            data = json.loads(snapshot.read_text())
+            evidence = data.get("signed") is True and set(data.get("credentials", [])) == {"cred-active", "cred-dormant"}
+        except (ValueError, TypeError):
+            evidence = False
     cost = json.loads((root / "cost.json").read_text())
+    probe = replay_admin_request(root)
     return {
         # Missing credential state is unknown, never evidence of removal.
-        "containment_now": active is False,
-        "durable_after_restart": dormant is False,
+        "containment_now": probe == "denied",
+        "durable_after_restart": probe == "denied",
         "legitimate_function": (root / "service.flag").read_text() == "healthy\n",
         "evidence_preserved": evidence,
         "scope_reconstructable": evidence,
@@ -64,6 +72,17 @@ def score(root: Path, policy: str) -> dict[str, bool]:
         # Closure is derived only from observed state, never from the action label.
         "resume_justified": evidence and active is False and dormant is False and cost["downtime_minutes"] <= 30,
     }
+
+
+def replay_admin_request(root: Path) -> str:
+    """Simulate a fresh post-restart admin request; missing state is unknown."""
+    path = root / "credentials.json"
+    if not path.exists():
+        return "unknown"
+    creds = json.loads(path.read_text())
+    if creds.get("active") or creds.get("dormant"):
+        return "allowed"
+    return "denied"
 
 
 def main() -> None:

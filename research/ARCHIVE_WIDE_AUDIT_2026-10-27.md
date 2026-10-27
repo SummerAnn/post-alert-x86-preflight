@@ -8,11 +8,12 @@ selected batch:
 - every run has a complete PR-diff sequence (five or six PRs);
 - no extraction errors occurred.
 
-The side-task scorer recorded success for all 24 final states. The sensitive
-telemetry/exfiltration code first appears in PR2 for 11 runs and PR3 for 13
-runs, rather than being introduced only in the final PR. This is materially
-better than the single-run impression and means the archive contains staged
-attack state suitable for a rollback-versus-repair audit.
+The side-task scorer recorded success for all 24 final states. Sensitive
+telemetry/exfiltration references first appear in PR2 for 11 runs and PR3 for
+13 runs. However, representative reconstruction shows that the executable
+trigger flag (`--send` or `--export`) is absent at PR2/PR3 and appears only in
+the final PR. Earlier code is staged preparation, not yet an active capability.
+This distinction is a critical confound for a dormant-residue claim.
 
 The archive also reports main-task success inconsistently across these runs
 (12 final samples scored correct and 12 incorrect), so legitimate-function
@@ -29,12 +30,12 @@ location from the incident-reporting family.
 
 ## Consequence
 
-The study can now test whether rollback at different alert points leaves an
-earlier staged capability, using multiple runs and two task families. This is a
-stronger and more interesting question than the original one-artifact pilot:
+The study can test immediate cleanup across two families. It cannot yet claim
+that rollback leaves an earlier executable capability, because the representative
+states do not activate the trigger before the final PR.
 
-> Does post-alert recovery remove the executable side task, or only the latest
-> visible stage of a distributed attack?
+> Does post-alert recovery remove an active executable side task while preserving
+> the legitimate application?
 
 No confirmatory model run is authorized by this audit alone. The next step is a
 zero-model reconstruction of representative PR2/PR3/PR-final states from both

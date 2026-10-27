@@ -1,12 +1,12 @@
 # Zero-model replay gate result
 
-## Result: blocked before replay
+## Result: artifact source located; replay still not started
 
-The released checkout contains the side-task specifications and scorers, but no
-saved attacked workspaces, trajectories, PR patches, or final application
-artifacts. The repository therefore cannot provide a known-positive attack state
-for a response replay without first synthesizing the attack artifact or running
-an agent.
+The Git checkout contains no saved attacked workspaces or logs, but the authors'
+public Hugging Face archive does contain the missing evaluation artifacts. Its
+dataset card lists archived `.eval` logs and result bundles, including the
+persistent-state runs. This changes the gate from “artifact unavailable” to
+“artifact acquisition and filtering required.”
 
 This is not a failed scientific result. It is a reproducibility boundary:
 
@@ -24,8 +24,11 @@ attack, and would risk repeating the earlier toy-benchmark problem.
 
 ## Legitimate next choices
 
-1. Obtain the authors' released run artifacts/trajectories, if available; or
-2. explicitly preregister a zero-model fixture-construction study whose sole
+1. Download only the relevant persistent-state `.eval` subset from the public
+   archive and inspect whether tool traces contain enough workspace information
+   to reconstruct a known-positive final state; or
+2. if the logs omit the needed state, explicitly preregister a zero-model
+   fixture-construction study whose sole
    purpose is validating the recovery harness, not estimating agent recovery.
 
 Until one of those is available, the post-alert question is a strong candidate

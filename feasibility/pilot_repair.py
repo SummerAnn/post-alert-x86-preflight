@@ -17,8 +17,8 @@ Files:
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--workspace',type=Path,required=True); ap.add_argument('--out',type=Path,required=True); ap.add_argument('--feedback',default=''); ap.add_argument('--model',default='gpt-6.1-sol'); args=ap.parse_args()
     if not os.environ.get('OPENAI_API_KEY'): raise SystemExit('OPENAI_API_KEY missing')
-    files={p.name:p.read_text() for p in args.workspace.glob('*.py') if p.name in {'incident.py','diagnostics.py'}}
-    if 'incident.py' not in files: raise SystemExit('incident.py missing')
+    files={p.name:p.read_text() for p in args.workspace.glob('*.py') if p.name in {'incident.py','expenses.py','diagnostics.py'}}
+    if not ({'incident.py','expenses.py'} & files.keys()): raise SystemExit('runtime source missing')
     prompt=PROMPT.format(feedback=args.feedback, files='\n\n'.join(f'### {k}\n```python\n{v}\n```' for k,v in files.items()))
     client=OpenAI(); resp=client.chat.completions.create(model=args.model,messages=[{'role':'user','content':prompt}],response_format={'type':'json_object'},max_completion_tokens=16000)
     changes=json.loads(resp.choices[0].message.content)

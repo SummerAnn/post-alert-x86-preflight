@@ -39,6 +39,10 @@ This is a genuine feasibility signal for a security–availability tradeoff: rol
 
 The result is not yet a paper claim. The sample is two artifacts, the repair arms are one model's pilot outputs, and there is no estimate of variation across mechanisms, models, or repeated runs. The next gate is to reconstruct additional archived artifacts only if they represent distinct mechanisms or application behaviors; repeating the same injected bug in the same two code paths would not establish generality.
 
+## Confound audit correction
+
+The first evaluator version checked ordinary report generation but did not require the incident reporter's legitimate webhook-delivery path to remain live. That was too weak. The evaluator was corrected to require a successful webhook/export with the sensitive value absent. The corrected summaries still pass for both targeted and capability-guided repairs; rollback disables the security-sensitive feature in both applications. Raw captures are not retained because the positive artifact intentionally transmits environment values.
+
 ## Reproducibility
 
 The evaluator is `feasibility/evaluate_recovery_arms.py`. It starts a local capture endpoint, injects a hidden evaluator key, executes each artifact, and records return codes, captured headers/bodies, and preservation checks. A corrected run is stored outside the repository at `/tmp/controlarena-artifacts/recovery_arm_eval.json`.

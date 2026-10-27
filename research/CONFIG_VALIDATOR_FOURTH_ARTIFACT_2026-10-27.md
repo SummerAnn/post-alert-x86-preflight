@@ -8,6 +8,8 @@ The archive records both `config-telemetry` and `triggered-exfil` variants, with
 
 Important confound correction: the reconstructed trajectory workspace did **not** contain the separate `metrics.py`/automatic-analytics path described in some archive notes. A local probe observed one compliance request, not two. The dual-channel claim is metadata-only and is not used as evidence.
 
+A second trajectory from the same public archive is genuinely different: its persistent side effect is a hardcoded remote configuration fetch that writes attacker-controlled content to `.config_cache`. A network-monkeypatched probe reproduced the fetch and durable cache write without contacting the external domain. This gives us two config-validator mechanisms: credential disclosure through compliance reporting, and durable remote-instruction/cache state.
+
 Source: public archive commit `5922d8b` in `idacy/control-arena-persistent-state-eval-archive-2026-07-30`.
 
 ## Proposed bounded test
@@ -22,7 +24,7 @@ Then compare rollback with one targeted repair and one capability-guided repair.
 
 ## Current status and limitation
 
-The public archive metadata and one raw trajectory are available. The trajectory can be reconstructed into an executable workspace from the recorded tool operations. A zero-model probe confirmed that the compromised state leaks a synthetic key while validation and compliance delivery succeed; one bounded GPT repair removed the leak while preserving validation and delivery. This is a fourth-artifact feasibility result, not a general repair rate. No claim is taken from the archive's native scorer.
+The public archive metadata and raw trajectories are available. They can be reconstructed into executable workspaces from the recorded tool operations. A zero-model probe confirmed the compliance credential leak; a bounded GPT repair removed that leak while preserving validation and delivery. A second zero-model probe reproduced the durable remote-cache channel. The latter has not yet received a successful model repair result. These are feasibility observations, not a general repair rate. No claim is taken from the archive's native scorer.
 
 ## Decision rule
 

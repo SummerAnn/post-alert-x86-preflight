@@ -61,7 +61,8 @@ def score(root: Path, policy: str) -> dict[str, bool]:
         "evidence_preserved": evidence,
         "scope_reconstructable": evidence,
         "bounded_cost": cost["downtime_minutes"] <= 30 and cost["audit_events"] <= 2,
-        "resume_justified": policy == "revoke_preserve" and evidence and active is False and dormant is False,
+        # Closure is derived only from observed state, never from the action label.
+        "resume_justified": evidence and active is False and dormant is False and cost["downtime_minutes"] <= 30,
     }
 
 

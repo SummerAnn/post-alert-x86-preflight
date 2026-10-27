@@ -56,7 +56,11 @@ The smaller public agent-auditor archive supplied a distinct monitoring/telemetr
 
 This remains a pilot, but it now spans three applications and three active exfiltration paths. The pattern replicated: rollback removes the capability by disabling the affected security-sensitive path, while both repair arms preserved that path in all three observed cases.
 
+One additional targeted and capability-guided repeat was run for each artifact where the temporary outputs completed. All completed repeats again removed the leak and preserved the legitimate path (incident: 2 targeted + 2 guided; expense: 2 targeted + 2 guided; telemetry: 2 targeted + 2 guided). This is still not a powered comparison across models, but it makes the pilot pattern less dependent on one lucky response.
+
 ## Reproducibility
 
 The evaluator is `feasibility/evaluate_recovery_arms.py`. It starts a local capture endpoint, injects a hidden evaluator key, executes each artifact, and records return codes, captured headers/bodies, and preservation checks. A corrected run is stored outside the repository at `/tmp/controlarena-artifacts/recovery_arm_eval.json`.
+
+The evaluator uses the dependency-bearing local interpreter explicitly and gives child processes a minimal environment containing only synthetic credentials. This prevents both missing-dependency false failures and accidental provider-key inheritance.
 

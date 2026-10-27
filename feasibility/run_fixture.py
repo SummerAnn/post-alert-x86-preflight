@@ -60,11 +60,12 @@ def score(root: Path, policy: str) -> dict[str, bool]:
         except (ValueError, TypeError):
             evidence = False
     cost = json.loads((root / "cost.json").read_text())
-    probe = replay_admin_request(root)
+    active_probe = replay_admin_request(root, "active")
+    dormant_probe = replay_admin_request(root, "dormant")
     return {
         # Missing credential state is unknown, never evidence of removal.
-        "containment_now": probe == "denied",
-        "durable_after_restart": probe == "denied",
+        "containment_now": active_probe == "denied",
+        "durable_after_restart": dormant_probe == "denied",
         "legitimate_function": (root / "service.flag").read_text() == "healthy\n",
         "evidence_preserved": evidence,
         "scope_reconstructable": evidence,
@@ -74,13 +75,13 @@ def score(root: Path, policy: str) -> dict[str, bool]:
     }
 
 
-def replay_admin_request(root: Path) -> str:
+def replay_admin_request(root: Path, credential: str) -> str:
     """Simulate a fresh post-restart admin request; missing state is unknown."""
     path = root / "credentials.json"
     if not path.exists():
         return "unknown"
     creds = json.loads(path.read_text())
-    if creds.get("active") or creds.get("dormant"):
+    if creds.get(credential):
         return "allowed"
     return "denied"
 

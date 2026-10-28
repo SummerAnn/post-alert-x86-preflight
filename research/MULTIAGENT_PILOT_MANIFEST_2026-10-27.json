@@ -1,0 +1,31 @@
+{
+  "protocol": "matched-three-call-v1",
+  "models": ["gpt-6.1-sol", "claude-sonnet-4-6"],
+  "mechanisms": ["remote-config"],
+  "arms": ["single-self-review", "same-model-team", "gpt-claude-gpt", "claude-gpt-claude"],
+  "calls_per_episode": 3,
+  "per_call_output_tokens": 8000,
+  "max_output_tokens_total": 24000,
+  "repair_replicates_per_cell": 1,
+  "evaluator_repetitions_per_repair": 3,
+  "randomization_seed": 20261027,
+  "pairing": "artifact_id+repair_rep",
+  "reviewer_revision_limit": 1,
+  "handoff_schema_version": "1",
+  "role_sequences": {
+    "single-self-review": ["self", "self", "self"],
+    "same-model-team": ["localizer", "repairer", "reviewer"],
+    "gpt-claude-gpt": ["gpt-6.1-sol:localizer", "claude-sonnet-4-6:repairer", "gpt-6.1-sol:reviewer"],
+    "claude-gpt-claude": ["claude-sonnet-4-6:localizer", "gpt-6.1-sol:repairer", "claude-sonnet-4-6:reviewer"]
+  },
+  "episodes": [
+    {"episode_id":"pilot-remote-config-gpt-single","artifact_id":"pilot-remote-config","model":"gpt-6.1-sol","mechanism":"remote-config","arm":"single-self-review","repair_rep":0,"order_index":0,"calls_per_episode":3,"per_call_output_tokens":8000,"max_output_tokens_total":24000},
+    {"episode_id":"pilot-remote-config-gpt-same","artifact_id":"pilot-remote-config","model":"gpt-6.1-sol","mechanism":"remote-config","arm":"same-model-team","repair_rep":0,"order_index":1,"calls_per_episode":3,"per_call_output_tokens":8000,"max_output_tokens_total":24000},
+    {"episode_id":"pilot-remote-config-gpt-mix1","artifact_id":"pilot-remote-config","model":"gpt-6.1-sol","mechanism":"remote-config","arm":"gpt-claude-gpt","repair_rep":0,"order_index":2,"calls_per_episode":3,"per_call_output_tokens":8000,"max_output_tokens_total":24000},
+    {"episode_id":"pilot-remote-config-gpt-mix2","artifact_id":"pilot-remote-config","model":"gpt-6.1-sol","mechanism":"remote-config","arm":"claude-gpt-claude","repair_rep":0,"order_index":3,"calls_per_episode":3,"per_call_output_tokens":8000,"max_output_tokens_total":24000},
+    {"episode_id":"pilot-remote-config-claude-single","artifact_id":"pilot-remote-config","model":"claude-sonnet-4-6","mechanism":"remote-config","arm":"single-self-review","repair_rep":0,"order_index":4,"calls_per_episode":3,"per_call_output_tokens":8000,"max_output_tokens_total":24000},
+    {"episode_id":"pilot-remote-config-claude-same","artifact_id":"pilot-remote-config","model":"claude-sonnet-4-6","mechanism":"remote-config","arm":"same-model-team","repair_rep":0,"order_index":5,"calls_per_episode":3,"per_call_output_tokens":8000,"max_output_tokens_total":24000},
+    {"episode_id":"pilot-remote-config-claude-mix1","artifact_id":"pilot-remote-config","model":"claude-sonnet-4-6","mechanism":"remote-config","arm":"gpt-claude-gpt","repair_rep":0,"order_index":6,"calls_per_episode":3,"per_call_output_tokens":8000,"max_output_tokens_total":24000},
+    {"episode_id":"pilot-remote-config-claude-mix2","artifact_id":"pilot-remote-config","model":"claude-sonnet-4-6","mechanism":"remote-config","arm":"claude-gpt-claude","repair_rep":0,"order_index":7,"calls_per_episode":3,"per_call_output_tokens":8000,"max_output_tokens_total":24000}
+  ]
+}

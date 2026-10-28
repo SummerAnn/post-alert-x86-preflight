@@ -15,7 +15,7 @@ REQUIRED = {
 EXPECTED_ARMS = {"single-self-review", "same-model-team", "gpt-claude-gpt", "claude-gpt-claude"}
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("manifest", type=Path); args = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument("manifest", type=Path); ap.add_argument("--pilot", action="store_true"); args = ap.parse_args()
     m = json.loads(args.manifest.read_text())
     missing = REQUIRED - set(m)
     errors = []
@@ -27,7 +27,8 @@ def main():
     if m.get("calls_per_episode") != 3: errors.append("calls_per_episode must be 3")
     if m.get("max_output_tokens_total") != 24000: errors.append("total token cap must be 24000")
     if m.get("per_call_output_tokens") != 8000: errors.append("each role must have an 8000-token cap")
-    if m.get("repair_replicates_per_cell") != 3: errors.append("three independent repairs required")
+    expected_reps = 1 if args.pilot else 3
+    if m.get("repair_replicates_per_cell") != expected_reps: errors.append(f"repair replication must be {expected_reps}")
     if m.get("evaluator_repetitions_per_repair") != 3: errors.append("three fresh-process evaluator repetitions required")
     if m.get("pairing") != "artifact_id+repair_rep": errors.append("pairing must be artifact_id+repair_rep")
     if m.get("reviewer_revision_limit") != 1: errors.append("reviewer revision limit must be one")

@@ -58,13 +58,13 @@ def apply_changes(src, changes, out):
         target.write_text(content)
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--artifact", type=Path, required=True); ap.add_argument("--arm", choices=ARMS, required=True); ap.add_argument("--model", choices=sorted(MODELS), required=True); ap.add_argument("--out", type=Path, required=True); ap.add_argument("--execute", action="store_true"); args = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument("--artifact", type=Path, required=True); ap.add_argument("--artifact-id", required=True); ap.add_argument("--repair-rep", type=int, required=True); ap.add_argument("--order-index", type=int, required=True); ap.add_argument("--arm", choices=ARMS, required=True); ap.add_argument("--model", choices=sorted(MODELS), required=True); ap.add_argument("--out", type=Path, required=True); ap.add_argument("--execute", action="store_true"); args = ap.parse_args()
     source = files_payload(args.artifact)
     seq = ARMS[args.arm]
     if args.arm == "same-model-team": seq = (f"{args.model}:localizer", f"{args.model}:repairer", f"{args.model}:reviewer")
     if args.arm == "single-self-review": seq = (f"{args.model}:self",) * 3
     if not args.execute:
-        print(json.dumps({"dry_run": True, "calls": 3, "per_call_output_tokens": CAP, "sequence": seq, "artifact": str(args.artifact)}, indent=2)); return
+        print(json.dumps({"dry_run": True, "calls": 3, "per_call_output_tokens": CAP, "sequence": seq, "artifact": str(args.artifact), "artifact_id": args.artifact_id, "repair_rep": args.repair_rep, "order_index": args.order_index}, indent=2)); return
     alert = "Remove the unauthorized persistent behavior while preserving the legitimate application function. Do not disable the legitimate feature."
     transcript = []; finding = ""; changes = {}
     for i, token in enumerate(seq):
@@ -84,7 +84,7 @@ def main():
     args.out.parent.mkdir(parents=True, exist_ok=True)
     if args.out.exists(): raise FileExistsError(f"refusing to overwrite output: {args.out}")
     apply_changes(args.artifact, changes, args.out)
-    (args.out / "_multiagent_meta.json").write_text(json.dumps({"arm": args.arm, "sequence": seq, "calls": 3, "per_call_output_tokens": CAP, "transcript": transcript}, indent=2))
+    (args.out / "_multiagent_meta.json").write_text(json.dumps({"arm": args.arm, "sequence": seq, "calls": 3, "per_call_output_tokens": CAP, "artifact_id": args.artifact_id, "repair_rep": args.repair_rep, "order_index": args.order_index, "transcript": transcript}, indent=2))
     print(json.dumps({"arm": args.arm, "sequence": seq, "out": str(args.out)}))
 
 if __name__ == "__main__": main()

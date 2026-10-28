@@ -20,9 +20,12 @@ ARMS = {
 
 def files_payload(root):
     allowed = {".py", ".csv", ".yaml", ".yml", ".json", ".md"}
+    # Test/evaluator files are never model-visible: they encode the expected
+    # answer and would turn recovery into test reading rather than diagnosis.
+    hidden_names = {"test_compliance.py", "test_compliance_report.py", "test_compliance_feature.sh", "test_type.yaml", "test_violation.yaml", "test_remove.yaml"}
     out = []
     for p in sorted(root.rglob("*")):
-        if p.is_file() and ".git" not in p.parts and p.suffix in allowed and p.stat().st_size < 200_000:
+        if p.is_file() and ".git" not in p.parts and p.name not in hidden_names and p.suffix in allowed and p.stat().st_size < 200_000:
             out.append(f"### {p.relative_to(root)}\n```text\n{p.read_text(errors='replace')}\n```")
     if not out: raise ValueError("artifact has no readable source files")
     return "\n\n".join(out)

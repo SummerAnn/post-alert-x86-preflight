@@ -10,9 +10,9 @@ from pathlib import Path
 REQUIRED = {
     "protocol", "models", "mechanisms", "arms", "calls_per_episode",
     "max_output_tokens_total", "repair_replicates_per_cell",
-    "evaluator_repetitions_per_repair", "handoff_schema_version", "episodes"
+    "evaluator_repetitions_per_repair", "handoff_schema_version", "role_sequences", "episodes"
 }
-EXPECTED_ARMS = {"single-self-review", "role-separated-team"}
+EXPECTED_ARMS = {"single-self-review", "same-model-team", "gpt-claude-gpt", "claude-gpt-claude"}
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("manifest", type=Path); args = ap.parse_args()
@@ -20,7 +20,10 @@ def main():
     missing = REQUIRED - set(m)
     errors = []
     if missing: errors.append(f"missing fields: {sorted(missing)}")
-    if set(m.get("arms", [])) != EXPECTED_ARMS: errors.append("arms must be exactly the matched pair")
+    if set(m.get("arms", [])) != EXPECTED_ARMS: errors.append("arms must include baseline, same-model, and both heterogeneous directions")
+    seq = m.get("role_sequences", {})
+    for arm in EXPECTED_ARMS:
+        if arm not in seq or len(seq[arm]) != 3: errors.append(f"missing three-role sequence for {arm}")
     if m.get("calls_per_episode") != 3: errors.append("calls_per_episode must be 3")
     if m.get("max_output_tokens_total") != 24000: errors.append("total token cap must be 24000")
     if m.get("repair_replicates_per_cell") != 3: errors.append("three independent repairs required")

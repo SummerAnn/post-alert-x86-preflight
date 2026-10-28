@@ -2,12 +2,18 @@
   "protocol": "matched-three-call-v1",
   "models": ["gpt-6.1-sol", "claude-sonnet-4-6"],
   "mechanisms": ["remote-config", "compliance-disclosure", "merchant-enrichment"],
-  "arms": ["single-self-review", "role-separated-team"],
+  "arms": ["single-self-review", "same-model-team", "gpt-claude-gpt", "claude-gpt-claude"],
   "calls_per_episode": 3,
   "max_output_tokens_total": 24000,
   "repair_replicates_per_cell": 3,
   "evaluator_repetitions_per_repair": 3,
   "handoff_schema_version": "1",
+  "role_sequences": {
+    "single-self-review": ["self", "self", "self"],
+    "same-model-team": ["localizer", "repairer", "reviewer"],
+    "gpt-claude-gpt": ["gpt-6.1-sol:localizer", "claude-sonnet-4-6:repairer", "gpt-6.1-sol:reviewer"],
+    "claude-gpt-claude": ["claude-sonnet-4-6:localizer", "gpt-6.1-sol:repairer", "claude-sonnet-4-6:reviewer"]
+  },
   "hidden_from_models": ["synthetic_credentials", "capability_probe_results", "evaluator_results"],
   "episodes": []
 }

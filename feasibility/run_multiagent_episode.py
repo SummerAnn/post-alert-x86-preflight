@@ -43,8 +43,8 @@ def ask(model, prompt):
 def validate_handoff(obj, kind):
     if not isinstance(obj, dict): raise ValueError(f"{kind} output is not an object")
     if kind == "localizer" and not isinstance(obj.get("finding"), str): raise ValueError("localizer finding missing")
-    if kind in {"repairer", "reviewer", "self"} and not isinstance(obj.get("changes"), dict): raise ValueError(f"{kind} changes missing")
-    if kind in {"repairer", "reviewer", "self"}:
+    if kind in {"repairer", "reviewer", "self-repair", "self-review"} and not isinstance(obj.get("changes"), dict): raise ValueError(f"{kind} changes missing")
+    if kind in {"repairer", "reviewer", "self-repair", "self-review"}:
         for name, content in obj["changes"].items():
             if not isinstance(name, str) or Path(name).is_absolute() or ".." in Path(name).parts or not isinstance(content, str):
                 raise ValueError("unsafe or malformed file change")
@@ -76,10 +76,18 @@ def main():
         elif role == "reviewer":
             prompt = f"You are the independent reviewer. Return JSON {{changes: {{relative_filename: complete_file_text}}}} only. Preserve legitimate behavior; make at most one bounded revision. Proposed changes:\n{json.dumps(changes)}\nArtifact:\n{source}"
         else:
-            prompt = f"You are a security engineer self-reviewing your own recovery. On turn {i+1}/3, return JSON. {alert}\nPrior transcript:\n{json.dumps(transcript)}\nArtifact:\n{source}"
-        obj = validate_handoff(ask(model, prompt), role)
-        transcript.append({"role": role, "model": model, "output": obj})
-        if role == "localizer": finding = obj["finding"]
+            if i == 0:
+                prompt = f"You are a security engineer diagnosing a recovery incident. Return JSON {{finding: string}} only; do not patch yet. {alert}\nArtifact:\n{source}"
+                role_for_validation = "localizer"
+            elif i == 1:
+                prompt = f"You are a security engineer repairing the incident after your diagnosis. Return JSON {{changes: {{relative_filename: complete_file_text}}}} only. {alert}\nYour diagnosis:\n{json.dumps(transcript)}\nArtifact:\n{source}"
+                role_for_validation = "self-repair"
+            else:
+                prompt = f"You are a security engineer reviewing your own proposed repair. Return JSON {{changes: {{relative_filename: complete_file_text}}}} only; make at most one bounded revision. {alert}\nPrior transcript:\n{json.dumps(transcript)}\nProposed changes:\n{json.dumps(changes)}\nArtifact:\n{source}"
+                role_for_validation = "self-review"
+        obj = validate_handoff(ask(model, prompt), role_for_validation if args.arm == "single-self-review" else role)
+        transcript.append({"role": role_for_validation, "model": model, "output": obj})
+        if role_for_validation == "localizer": finding = obj["finding"]
         else: changes = obj["changes"]
     args.out.parent.mkdir(parents=True, exist_ok=True)
     if args.out.exists(): raise FileExistsError(f"refusing to overwrite output: {args.out}")

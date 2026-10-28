@@ -25,8 +25,8 @@ def main():
     for arm in EXPECTED_ARMS:
         if arm not in seq or len(seq[arm]) != 3: errors.append(f"missing three-role sequence for {arm}")
     if m.get("calls_per_episode") != 3: errors.append("calls_per_episode must be 3")
-    if m.get("max_output_tokens_total") != 24000: errors.append("total token cap must be 24000")
-    if m.get("per_call_output_tokens") != 8000: errors.append("each role must have an 8000-token cap")
+    if m.get("max_output_tokens_total") != m.get("per_call_output_tokens", 0) * 3: errors.append("total token cap must equal three per-call caps")
+    if m.get("per_call_output_tokens") not in (8000, 16000): errors.append("invalid per-call budget")
     expected_reps = 1 if args.pilot else 3
     if m.get("repair_replicates_per_cell") != expected_reps: errors.append(f"repair replication must be {expected_reps}")
     if m.get("evaluator_repetitions_per_repair") != 3: errors.append("three fresh-process evaluator repetitions required")
@@ -41,8 +41,8 @@ def main():
         seen.add(key)
         if ep.get("arm") not in EXPECTED_ARMS: errors.append(f"episode {i}: invalid arm")
         if ep.get("calls_per_episode") != 3: errors.append(f"episode {i}: call count mismatch")
-        if ep.get("max_output_tokens_total") != 24000: errors.append(f"episode {i}: token budget mismatch")
-        if ep.get("per_call_output_tokens") != 8000: errors.append(f"episode {i}: per-call budget mismatch")
+        if ep.get("max_output_tokens_total") != m.get("max_output_tokens_total"): errors.append(f"episode {i}: token budget mismatch")
+        if ep.get("per_call_output_tokens") != m.get("per_call_output_tokens"): errors.append(f"episode {i}: per-call budget mismatch")
     if errors:
         print(json.dumps({"valid": False, "errors": errors}, indent=2)); raise SystemExit(1)
     print(json.dumps({"valid": True, "episodes": len(m.get("episodes", [])), "arms": sorted(EXPECTED_ARMS)}, indent=2))

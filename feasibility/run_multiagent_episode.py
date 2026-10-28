@@ -8,7 +8,7 @@ as inputs to this runner.
 import argparse, json, os, re, shutil, tempfile
 from pathlib import Path
 
-CAP = 8000
+CAP = 16000
 PROVIDER_TIMEOUT = 180.0
 MODELS = {"gpt-6.1-sol", "claude-sonnet-4-6"}
 ARMS = {

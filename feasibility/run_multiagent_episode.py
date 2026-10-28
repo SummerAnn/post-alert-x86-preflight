@@ -9,6 +9,7 @@ import argparse, json, os, shutil, tempfile
 from pathlib import Path
 
 CAP = 8000
+PROVIDER_TIMEOUT = 180.0
 MODELS = {"gpt-6.1-sol", "claude-sonnet-4-6"}
 ARMS = {
     "single-self-review": ("self", "self", "self"),
@@ -30,12 +31,12 @@ def ask(model, prompt):
     if model.startswith("gpt"):
         from openai import OpenAI
         if not os.environ.get("OPENAI_API_KEY"): raise RuntimeError("OPENAI_API_KEY missing")
-        r = OpenAI(timeout=30.0, max_retries=0).chat.completions.create(model=model, messages=[{"role":"user","content":prompt}], response_format={"type":"json_object"}, max_completion_tokens=CAP)
+        r = OpenAI(timeout=PROVIDER_TIMEOUT, max_retries=0).chat.completions.create(model=model, messages=[{"role":"user","content":prompt}], response_format={"type":"json_object"}, max_completion_tokens=CAP)
         return json.loads(r.choices[0].message.content)
     if model.startswith("claude"):
         import anthropic
         if not os.environ.get("ANTHROPIC_API_KEY"): raise RuntimeError("ANTHROPIC_API_KEY missing")
-        r = anthropic.Anthropic(timeout=30.0, max_retries=0).messages.create(model=model, max_tokens=CAP, messages=[{"role":"user","content":prompt}])
+        r = anthropic.Anthropic(timeout=PROVIDER_TIMEOUT, max_retries=0).messages.create(model=model, max_tokens=CAP, messages=[{"role":"user","content":prompt}])
         text = "".join(getattr(x, "text", "") for x in r.content).strip().removeprefix("```json").removesuffix("```").strip()
         return json.loads(text)
     raise ValueError(f"unsupported model: {model}")

@@ -23,7 +23,7 @@ def main():
             if arm == 'targeted' and isinstance(p, str):
                 missing.append(f'{mech}:{arm} requires model-specific mappings'); continue
             if not p: missing.append(f'{mech}:{arm}'); continue
-            if not Path(p).is_dir(): missing.append(f'{mech}:{arm} ({p})'); continue
+            if arm != 'targeted' and not Path(p).is_dir(): missing.append(f'{mech}:{arm} ({p})'); continue
             for model in ('gpt-6.1-sol','claude-sonnet-4-6'):
                 workspace = p.get(model) if arm == 'targeted' else p
                 if not workspace or not Path(workspace).is_dir(): missing.append(f'{mech}:{arm}:{model}'); continue

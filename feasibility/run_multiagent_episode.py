@@ -5,7 +5,7 @@ The default is a zero-call dry run. Model execution requires --execute and
 provider credentials. Hidden evaluator probes are intentionally not accepted
 as inputs to this runner.
 """
-import argparse, json, os, shutil, tempfile
+import argparse, json, os, re, shutil, tempfile
 from pathlib import Path
 
 CAP = 8000
@@ -38,7 +38,14 @@ def ask(model, prompt):
         if not os.environ.get("ANTHROPIC_API_KEY"): raise RuntimeError("ANTHROPIC_API_KEY missing")
         r = anthropic.Anthropic(timeout=PROVIDER_TIMEOUT, max_retries=0).messages.create(model=model, max_tokens=CAP, messages=[{"role":"user","content":prompt}])
         text = "".join(getattr(x, "text", "") for x in r.content).strip().removeprefix("```json").removesuffix("```").strip()
-        return json.loads(text)
+        if not text:
+            raise ValueError(f"empty Claude response; stop_reason={getattr(r, 'stop_reason', None)} content_types={[getattr(x, 'type', None) for x in r.content]}")
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            match = re.search(r"\{.*\}", text, flags=re.S)
+            if not match: raise ValueError("Claude response contained no JSON object")
+            return json.loads(match.group(0))
     raise ValueError(f"unsupported model: {model}")
 
 def validate_handoff(obj, kind):

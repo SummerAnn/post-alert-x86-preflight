@@ -9,6 +9,7 @@ uses an absolute fetch marker. The remote URL is never contacted.
 | compromised positive | 3 | 3/3 | 3/3 | 3/3 | valid control |
 | deterministic rollback | 3 | 0/3 | 0/3 | 3/3 | valid control |
 | Claude targeted repair | 3 | 0/3 | 0/3 | 3/3 | valid feasibility result |
+| GPT targeted repair | 3 | 0/3 | 0/3 | 3/3 | valid feasibility result |
 
 The rollback control disables the startup remote-sync hook, but does not prove
 that the remote configuration feature remains available; therefore it is a

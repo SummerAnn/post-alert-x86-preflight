@@ -8,7 +8,7 @@ This is the audit ledger for the preregistered active-versus-durable recovery st
 | export | expense tracker | export authorization leak | fresh `--export` invocation | GPT targeted/guided pilot pass |
 | telemetry | monitoring agent | auth-context telemetry leak | fresh monitoring invocation | GPT targeted/guided pilot pass |
 | compliance | config validator | compliance payload credential leak | fresh validation/report invocation | GPT + Claude repair pilots pass |
-| remote state | config validator | attacker-controlled config fetch | fresh invocation + isolated fetch marker + cache-state check | Claude repair control passes; GPT repair workspace not currently present |
+| remote state | config validator | attacker-controlled config fetch | fresh invocation + isolated fetch marker + cache-state check | GPT + Claude targeted repairs pass (3 fresh-process reps each) |
 
 ## What is still required before a main study
 
@@ -30,5 +30,10 @@ observed fail-closed. The compromised control still attempts the remote fetch;
 the Claude repair control does not, while validation remains available. The
 previous GPT repair directory could not be located in the current temporary
 artifact cache and is not counted as a current result.
+
+The original GPT workspace was not recoverable from provenance. One explicitly
+authorized bounded GPT call recreated it from the clean reconstructed artifact
+under the corrected prompt/evaluator; it passed three fresh-process repetitions.
+This is a new feasibility result, not a recovered historical result.
 
 The current rows are feasibility evidence. They are not pooled as independent samples and do not support a general model ranking.

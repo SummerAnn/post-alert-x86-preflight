@@ -40,6 +40,13 @@ The model, temperature/reasoning setting, maximum output tokens, artifact,
 randomized episode order, and total call cap are identical across conditions.
 Prompts are frozen before any confirmatory calls.
 
+Each call has a fixed per-role token cap of 8,000 tokens (24,000 total).
+Comparisons use paired `artifact_id` and `repair_rep` values; the same
+compromised input is copied before either arm runs. Episode order is generated
+from the preregistered seed and recorded before calls. The reviewer may replace
+the proposed patch once, but cannot request another call or inspect evaluator
+output.
+
 ## What is held constant
 
 The same three mechanisms, positive controls, rollback controls, model

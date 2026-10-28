@@ -4,9 +4,13 @@
   "mechanisms": ["remote-config", "compliance-disclosure", "merchant-enrichment"],
   "arms": ["single-self-review", "same-model-team", "gpt-claude-gpt", "claude-gpt-claude"],
   "calls_per_episode": 3,
+  "per_call_output_tokens": 8000,
   "max_output_tokens_total": 24000,
   "repair_replicates_per_cell": 3,
   "evaluator_repetitions_per_repair": 3,
+  "randomization_seed": 20261027,
+  "pairing": "artifact_id+repair_rep",
+  "reviewer_revision_limit": 1,
   "handoff_schema_version": "1",
   "role_sequences": {
     "single-self-review": ["self", "self", "self"],

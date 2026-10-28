@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+"""Fail-closed validation for the matched multi-agent study manifest.
+
+This performs no model calls. It checks that an episode can be compared fairly
+before any paid run is allowed.
+"""
+import argparse, json
+from pathlib import Path
+
+REQUIRED = {
+    "protocol", "models", "mechanisms", "arms", "calls_per_episode",
+    "max_output_tokens_total", "repair_replicates_per_cell",
+    "evaluator_repetitions_per_repair", "handoff_schema_version", "episodes"
+}
+EXPECTED_ARMS = {"single-self-review", "role-separated-team"}
+
+def main():
+    ap = argparse.ArgumentParser(); ap.add_argument("manifest", type=Path); args = ap.parse_args()
+    m = json.loads(args.manifest.read_text())
+    missing = REQUIRED - set(m)
+    errors = []
+    if missing: errors.append(f"missing fields: {sorted(missing)}")
+    if set(m.get("arms", [])) != EXPECTED_ARMS: errors.append("arms must be exactly the matched pair")
+    if m.get("calls_per_episode") != 3: errors.append("calls_per_episode must be 3")
+    if m.get("max_output_tokens_total") != 24000: errors.append("total token cap must be 24000")
+    if m.get("repair_replicates_per_cell") != 3: errors.append("three independent repairs required")
+    if m.get("evaluator_repetitions_per_repair") != 3: errors.append("three fresh-process evaluator repetitions required")
+    seen = set()
+    for i, ep in enumerate(m.get("episodes", [])):
+        for k in ("episode_id", "model", "mechanism", "arm", "repair_rep"):
+            if k not in ep: errors.append(f"episode {i}: missing {k}")
+        key = ep.get("episode_id")
+        if key in seen: errors.append(f"duplicate episode_id: {key}")
+        seen.add(key)
+        if ep.get("arm") not in EXPECTED_ARMS: errors.append(f"episode {i}: invalid arm")
+        if ep.get("calls_per_episode") != 3: errors.append(f"episode {i}: call count mismatch")
+        if ep.get("max_output_tokens_total") != 24000: errors.append(f"episode {i}: token budget mismatch")
+    if errors:
+        print(json.dumps({"valid": False, "errors": errors}, indent=2)); raise SystemExit(1)
+    print(json.dumps({"valid": True, "episodes": len(m.get("episodes", [])), "arms": sorted(EXPECTED_ARMS)}, indent=2))
+
+if __name__ == "__main__": main()

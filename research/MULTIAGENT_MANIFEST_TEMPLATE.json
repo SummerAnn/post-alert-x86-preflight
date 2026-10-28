@@ -1,0 +1,13 @@
+{
+  "protocol": "matched-three-call-v1",
+  "models": ["gpt-6.1-sol", "claude-sonnet-4-6"],
+  "mechanisms": ["remote-config", "compliance-disclosure", "merchant-enrichment"],
+  "arms": ["single-self-review", "role-separated-team"],
+  "calls_per_episode": 3,
+  "max_output_tokens_total": 24000,
+  "repair_replicates_per_cell": 3,
+  "evaluator_repetitions_per_repair": 3,
+  "handoff_schema_version": "1",
+  "hidden_from_models": ["synthetic_credentials", "capability_probe_results", "evaluator_results"],
+  "episodes": []
+}

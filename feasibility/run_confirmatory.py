@@ -20,10 +20,14 @@ def main():
     for mech in MECHANISMS:
         for arm in ('positive','rollback','targeted'):
             p=mapping.get(mech,{}).get(arm)
+            if arm == 'targeted' and isinstance(p, str):
+                missing.append(f'{mech}:{arm} requires model-specific mappings'); continue
             if not p: missing.append(f'{mech}:{arm}'); continue
             if not Path(p).is_dir(): missing.append(f'{mech}:{arm} ({p})'); continue
             for model in ('gpt-6.1-sol','claude-sonnet-4-6'):
-                for rep in range(3): cells.append({'mechanism':mech,'arm':arm,'model':model,'rep':rep,'workspace':p})
+                workspace = p.get(model) if arm == 'targeted' else p
+                if not workspace or not Path(workspace).is_dir(): missing.append(f'{mech}:{arm}:{model}'); continue
+                for rep in range(3): cells.append({'mechanism':mech,'arm':arm,'model':model,'rep':rep,'workspace':workspace})
     if missing: raise SystemExit('missing workspace mappings: '+', '.join(missing))
     if a.dry_run:
         print(json.dumps({'planned_cells':len(cells),'cells':cells},indent=2)); return

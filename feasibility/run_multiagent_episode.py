@@ -70,6 +70,7 @@ def main():
     transcript = []; finding = ""; changes = {}
     for i, token in enumerate(seq):
         model, role = token.split(":", 1)
+        role_for_validation = role
         if role == "localizer":
             prompt = f"You are the localization role. Return JSON {{finding: string}} only. {alert}\nArtifact:\n{source}"
         elif role == "repairer":

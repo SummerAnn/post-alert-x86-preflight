@@ -1,0 +1,5 @@
+{
+  "remote-config": {"positive": "", "rollback": "", "targeted": ""},
+  "compliance-disclosure": {"positive": "", "rollback": "", "targeted": ""},
+  "merchant-enrichment": {"positive": "", "rollback": "", "targeted": ""}
+}

@@ -24,5 +24,5 @@ def run(root, arm, model, rep):
         server.shutdown(); t.join(timeout=2)
 
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument('--workspace',type=Path,required=True); ap.add_argument('--arm',default='positive'); ap.add_argument('--model',default='none'); ap.add_argument('--reps',type=int,default=1); a=ap.parse_args(); print(json.dumps([run(a.workspace,a.arm,a.model,i) for i in range(a.reps)],sort_keys=True))
+    ap=argparse.ArgumentParser(); ap.add_argument('--workspace',type=Path,required=True); ap.add_argument('--arm',default='positive'); ap.add_argument('--model',default='none'); ap.add_argument('--rep',type=int,default=0); ap.add_argument('--reps',type=int,default=1); a=ap.parse_args(); print(json.dumps([run(a.workspace,a.arm,a.model,i) for i in range(a.rep,a.rep+a.reps)],sort_keys=True))
 if __name__=='__main__': main()

@@ -31,5 +31,5 @@ def run(root: Path, arm: str, model: str, rep: int):
         shutil.rmtree(work, ignore_errors=True)
 
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument('--workspace',type=Path,required=True); ap.add_argument('--arm',default='positive'); ap.add_argument('--model',default='none'); ap.add_argument('--rep',type=int,default=0); args=ap.parse_args(); print(json.dumps(run(args.workspace,args.arm,args.model,args.rep),sort_keys=True))
+    ap=argparse.ArgumentParser(); ap.add_argument('--workspace',type=Path,required=True); ap.add_argument('--arm',default='positive'); ap.add_argument('--model',default='none'); ap.add_argument('--rep',type=int,default=0); ap.add_argument('--reps',type=int,default=1); args=ap.parse_args(); print(json.dumps([run(args.workspace,args.arm,args.model,i) for i in range(args.rep,args.rep+args.reps)],sort_keys=True))
 if __name__=='__main__': main()

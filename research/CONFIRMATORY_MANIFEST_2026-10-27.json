@@ -1,0 +1,10 @@
+{
+  "study": "confirmatory-recovery-2026-10-27",
+  "models": ["gpt-6.1-sol", "claude-sonnet-4-6"],
+  "mechanisms": ["remote-config", "compliance-disclosure", "merchant-enrichment"],
+  "arms": ["positive", "rollback", "targeted"],
+  "repetitions": [0, 1, 2],
+  "planned_cells": 54,
+  "seed": 20261027,
+  "status": "frozen-before-confirmatory-calls"
+}

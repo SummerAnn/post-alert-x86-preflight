@@ -13,7 +13,7 @@ def main():
             if cid in seen: malformed.append({'line':i,'error':'duplicate cell'}); continue
             seen.add(cid); rows.append(r)
         except Exception as e: malformed.append({'line':i,'error':str(e)})
-    expected=54; groups=defaultdict(list)
+    expected=90; groups=defaultdict(list)
     for r in rows: groups[(r['mechanism'],r['arm'],r['model'])].append(r)
     print(json.dumps({'completed_rows':len(rows),'missing_rows':expected-len(rows),'malformed':malformed,'groups':{('|'.join(k)):{'n':len(v)} for k,v in sorted(groups.items())}},indent=2,sort_keys=True))
 if __name__=='__main__': main()

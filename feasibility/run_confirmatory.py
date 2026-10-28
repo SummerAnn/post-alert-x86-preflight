@@ -25,9 +25,13 @@ def main():
             if not p: missing.append(f'{mech}:{arm}'); continue
             if arm != 'targeted' and not Path(p).is_dir(): missing.append(f'{mech}:{arm} ({p})'); continue
             for model in ('gpt-6.1-sol','claude-sonnet-4-6'):
-                workspace = p.get(model) if arm == 'targeted' else p
-                if not workspace or not Path(workspace).is_dir(): missing.append(f'{mech}:{arm}:{model}'); continue
-                for rep in range(3): cells.append({'mechanism':mech,'arm':arm,'model':model,'rep':rep,'workspace':workspace})
+                workspaces = p.get(model) if arm == 'targeted' else [p]
+                if arm == 'targeted' and (not isinstance(workspaces, list) or len(workspaces) != 3):
+                    missing.append(f'{mech}:{arm}:{model} requires 3 independent repair workspaces'); continue
+                if any(not w or not Path(w).is_dir() for w in workspaces):
+                    missing.append(f'{mech}:{arm}:{model}'); continue
+                for repair_rep, workspace in enumerate(workspaces):
+                    for eval_rep in range(3): cells.append({'mechanism':mech,'arm':arm,'model':model,'rep':eval_rep,'repair_rep':repair_rep,'workspace':workspace})
     if missing: raise SystemExit('missing workspace mappings: '+', '.join(missing))
     if a.dry_run:
         print(json.dumps({'planned_cells':len(cells),'cells':cells},indent=2)); return
@@ -35,7 +39,7 @@ def main():
     existing={json.loads(x)['cell_id'] for x in a.out.read_text().splitlines() if x.strip()} if a.out.exists() else set()
     with a.out.open('a') as f:
         for c in cells:
-            c['cell_id']=f"{c['mechanism']}|{c['arm']}|{c['model']}|{c['rep']}"
+            c['cell_id']=f"{c['mechanism']}|{c['arm']}|{c['model']}|r{c['repair_rep']}|e{c['rep']}"
             if c['cell_id'] in existing: continue
             # Model-independent controls are still duplicated for bookkeeping;
             # evaluators receive the model label but make no model calls.
@@ -44,7 +48,7 @@ def main():
             proc=subprocess.run(cmd,text=True,capture_output=True)
             try: payload=json.loads(proc.stdout)
             except Exception: payload={'error':'malformed evaluator output','stdout':proc.stdout,'stderr':proc.stderr}
-            row={'cell_id':c['cell_id'],'mechanism':c['mechanism'],'arm':c['arm'],'model':c['model'],'rep':c['rep'],'payload':payload,'returncode':proc.returncode}
+            row={'cell_id':c['cell_id'],'mechanism':c['mechanism'],'arm':c['arm'],'model':c['model'],'repair_rep':c['repair_rep'],'rep':c['rep'],'payload':payload,'returncode':proc.returncode}
             f.write(json.dumps(row,sort_keys=True)+'\n'); f.flush()
 
 if __name__=='__main__': main()

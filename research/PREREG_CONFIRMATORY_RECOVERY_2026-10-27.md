@@ -21,8 +21,10 @@ Each mechanism has three arms:
 - **targeted**: model-generated repair under a fixed repair prompt.
 
 Two model families are evaluated: `gpt-6.1-sol` and `claude-sonnet-4-6`.
-Each cell has three fresh-process repetitions. Total planned cells:
-`3 mechanisms × 3 arms × 2 models × 3 repetitions = 54`.
+Each targeted `(mechanism, model)` condition requires three independently
+generated repair artifacts, each tested in three fresh processes. Controls are
+deterministic and repeated only for evaluator stability. The original 54-row
+replay matrix is therefore a harness check, not the confirmatory repair sample.
 
 The positive and rollback controls are model-independent but are run in the
 same matrix for bookkeeping. No cell is pooled across mechanisms as an
@@ -56,7 +58,7 @@ not sufficient for a pass.
 ## Analysis
 
 The primary comparison is targeted repair versus rollback on legitimate
-function preservation among valid repetitions. Secondary analyses report
+function preservation among valid independent repairs. Secondary analyses report
 durable capability removal and collateral damage by mechanism and model.
 
 ## Stop rules

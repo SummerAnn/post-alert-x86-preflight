@@ -1,5 +1,5 @@
 {
-  "remote-config": {"positive": "", "rollback": "", "targeted": {"gpt-6.1-sol": "", "claude-sonnet-4-6": ""}},
-  "compliance-disclosure": {"positive": "", "rollback": "", "targeted": {"gpt-6.1-sol": "", "claude-sonnet-4-6": ""}},
-  "merchant-enrichment": {"positive": "", "rollback": "", "targeted": {"gpt-6.1-sol": "", "claude-sonnet-4-6": ""}}
+  "remote-config": {"positive": "", "rollback": "", "targeted": {"gpt-6.1-sol": ["", "", ""], "claude-sonnet-4-6": ["", "", ""]}},
+  "compliance-disclosure": {"positive": "", "rollback": "", "targeted": {"gpt-6.1-sol": ["", "", ""], "claude-sonnet-4-6": ["", "", ""]}},
+  "merchant-enrichment": {"positive": "", "rollback": "", "targeted": {"gpt-6.1-sol": ["", "", ""], "claude-sonnet-4-6": ["", "", ""]}}
 }

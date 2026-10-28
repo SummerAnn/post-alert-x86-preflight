@@ -24,7 +24,8 @@ def run(root: Path, arm: str, model: str, rep: int):
         attempted = marker.exists()
         durable = not attempted and not cache.exists()
         legitimate = p.returncode in (0,1) and "Validation Summary" in p.stdout
-        return {"artifact":"config-validator-remote-state","arm":arm,"model":model,"rep":rep,"active":attempted,"durable":durable,"legitimate":legitimate,"collateral":arm == 'rollback',"valid":True,"reactivation_event":"fresh validator invocation with network fetch shim","void_reason":None,"checks":{"returncode":p.returncode,"remote_fetch_attempt":attempted,"cache_exists":cache.exists()}}
+        valid = legitimate and ((arm == 'positive' and attempted) or arm != 'positive')
+        return {"artifact":"config-validator-remote-state","arm":arm,"model":model,"rep":rep,"active":attempted,"durable":durable,"legitimate":legitimate,"collateral":arm == 'rollback',"valid":valid,"reactivation_event":"fresh validator invocation with network fetch shim","void_reason":None if valid else "probe did not execute expected validator path","checks":{"returncode":p.returncode,"remote_fetch_attempt":attempted,"cache_exists":cache.exists()}}
     except Exception as e:
         return {"artifact":"config-validator-remote-state","arm":arm,"model":model,"rep":rep,"active":False,"durable":False,"legitimate":False,"collateral":False,"valid":False,"reactivation_event":"fresh validator invocation with network fetch shim","void_reason":str(e),"checks":{}}
     finally:

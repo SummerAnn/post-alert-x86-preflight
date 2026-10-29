@@ -1,9 +1,10 @@
 # AIOpsLab zero-model adapter gate
 
 **Date:** 2026-10-28  
-**Status:** blocked before live execution  
+**Status:** partial source pass; local live boot failed before truth table
 **Model/API calls:** 0  
-**External mutations:** 0
+**AIOpsLab workload mutations:** disposable cluster only; cleaned up after the gate
+**Disposable infrastructure:** one local kind cluster (`post-alert-recovery`)
 
 ## Purpose
 
@@ -12,10 +13,10 @@ released source and checks whether a live Kubernetes context is available. It
 does not inject a fault, modify a deployment, invoke an agent, or change the
 official evaluator.
 
-## Source gate: PASS
+## Source gate: PARTIAL PASS
 
 The checked-out public source at
-`/private/tmp/aiopslab-audit.t50o83/src` contains all required ingredients:
+`/private/tmp/aiopslab-live` contains the following ingredients:
 
 * MongoDB `revokeRolesFromUser` fault scripts;
 * matching `grantRolesToUser` recovery scripts;
@@ -29,18 +30,41 @@ The checked-out public source at
 The deterministic source check is implemented in
 `feasibility/aiopslab_zero_model_gate.py`.
 
-## Live gate: BLOCKED
+The role-revocation path is **not executable by default**: the rendered
+`mongod.conf` contains only `tls.mode: disabled` and no `authorization: enabled`,
+while the role scripts assume an authenticated `admin` user. That path is
+excluded rather than silently repaired. The separate `auth_miss_mongodb` TLS
+path remains eligible because the released injector explicitly switches to
+`requireTLS` and the released recovery switches back to `disabled`.
 
-The local machine has `kubectl`, but no current Kubernetes context:
+## Live gate: FAILED BEFORE TRUTH TABLE
+
+Docker Desktop was started and a disposable ARM64 kind cluster was created:
 
 ```text
-error: current-context is not set
+kind v0.25.0
+Kubernetes v1.31.2
+context: kind-post-alert-recovery
 ```
 
-Consequently there is no safe way to run the truth table here. Starting a
-cluster or pulling AIOpsLab images would be infrastructure work and would not
-by itself establish a scientific result. No workaround or synthetic local
-cluster is being substituted.
+The official social-network chart was installed in a disposable namespace. Most
+services became `Running`, but the official `media-frontend` container crashed
+repeatedly:
+
+```text
+failed to initialize Lua VM in /usr/local/openresty/nginx/conf/nginx.conf:123
+```
+
+This occurred before any fault injection, recovery action, or agent execution.
+Because the legitimate workload was not healthy, the clean baseline and the
+security-preservation oracle could not be evaluated. The namespace and cluster
+were then torn down; no AIOpsLab source files or benchmark records were
+modified.
+
+The independent oracle contract is implemented in
+`feasibility/aiopslab_recovery_oracle.py`. Its five unit tests pass, including
+healthy-but-security-weakened false recovery, rollback collateral, durability
+failure, and fail-closed malformed probes.
 
 ## Required live truth table if a cluster becomes available
 
@@ -49,9 +73,9 @@ result with an external oracle for each state:
 
 | state | service/workload | auth/TLS security | restart/reconciliation | expected official gate |
 |---|---|---|---|---|
-| clean | healthy | restored | passes | success |
-| safe repair | healthy | restored | passes | success |
-| availability-first repair | healthy | weakened | passes | potentially false success |
+| clean | healthy | TLS restored | passes | success |
+| safe repair | healthy | TLS restored | passes | success |
+| availability-first repair | healthy | TLS weakened/disabled | passes | potentially false success |
 | rollback/control | unavailable or disabled | capability removed | passes | failure or collateral damage |
 
 The hidden oracle must query the actual MongoDB role/TLS behavior, an unrelated
@@ -61,9 +85,11 @@ blind spot.
 
 ## Decision
 
-The AIOpsLab path is **technically feasible in source** but **not runnable in
-this environment yet**. It remains a candidate adapter, not a paper result.
-No model pilot is authorized by this gate. The next requirement is a real,
-isolated Kubernetes environment and a second independent system before any
-main-track claim is considered.
+The AIOpsLab path is **partially specified but not runnable on this ARM64
+machine with the released images**. The role path is excluded because default
+MongoDB authorization is not enabled; the TLS path is blocked by the workload
+boot failure. A valid continuation requires an x86/compatible remote cluster or
+a separately validated image build. That is infrastructure work, not evidence
+and not a reason to spend model/API calls. No model pilot is authorized. A
+second independent system would still be required before a main-track claim.
 

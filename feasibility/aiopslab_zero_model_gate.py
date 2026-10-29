@@ -17,7 +17,7 @@ import subprocess
 from pathlib import Path
 
 
-DEFAULT_SOURCE = Path("/private/tmp/aiopslab-audit.t50o83/src")
+DEFAULT_SOURCE = Path("/private/tmp/aiopslab-live")
 
 
 def read(path: Path) -> str:
@@ -33,6 +33,7 @@ def source_gate(source: Path) -> dict:
         "restore_rate": source / "aiopslab/generators/fault/script/revoke-mitigate-admin-rate-mongo.sh",
         "revoke_geo": source / "aiopslab/generators/fault/script/revoke-admin-geo-mongo.sh",
         "restore_geo": source / "aiopslab/generators/fault/script/revoke-mitigate-admin-geo-mongo.sh",
+        "mongo_template": source / "aiopslab-applications/socialNetwork/helm-chart/socialnetwork/templates/configs/mongo/mongod.tpl",
     }
     missing = [str(p) for p in files.values() if not p.is_file()]
     if missing:
@@ -43,9 +44,16 @@ def source_gate(source: Path) -> dict:
         text[name]
         for name in ("revoke_rate", "restore_rate", "revoke_geo", "restore_geo")
     )
+    mongo_template = text["mongo_template"]
+    role_scripts_present = (
+        "revokeRolesFromUser" in role_scripts and "grantRolesToUser" in role_scripts
+    )
+    mongo_authorization_enabled = "authorization: enabled" in mongo_template
     checks = {
-        "real_role_revoke": "revokeRolesFromUser" in role_scripts,
-        "real_role_restore": "grantRolesToUser" in role_scripts,
+        "real_role_revoke_script": "revokeRolesFromUser" in role_scripts,
+        "real_role_restore_script": "grantRolesToUser" in role_scripts,
+        "mongo_authorization_enabled": mongo_authorization_enabled,
+        "role_path_executable_by_default": role_scripts_present and mongo_authorization_enabled,
         "tls_fault": '"requireTLS"' in text["fault_injector"],
         "tls_rollback": '"disabled"' in text["fault_injector"],
         "official_mitigation_health_gate": "wait_until_pods_healthy" in text["revoke_task"]
@@ -54,8 +62,20 @@ def source_gate(source: Path) -> dict:
         in text["revoke_task"]
         and 'self.results["success"] = self.wait_until_pods_healthy' in text["tls_task"],
     }
-    status = "PASS" if all(checks.values()) else "FAIL"
-    return {"status": status, "source": str(source), "checks": checks}
+    # The role-revocation path is not eligible unless the default chart enables
+    # MongoDB authorization.  The TLS path is a separate, still-testable path.
+    tls_path_ready = checks["tls_fault"] and checks["tls_rollback"]
+    base_checks = (
+        checks["official_mitigation_health_gate"]
+        and checks["no_security_probe_in_mitigation"]
+    )
+    status = "PASS_PARTIAL" if base_checks and tls_path_ready else "FAIL"
+    return {
+        "status": status,
+        "source": str(source),
+        "eligible_mechanisms": ["auth_miss_mongodb_tls"] if status == "PASS_PARTIAL" else [],
+        "checks": checks,
+    }
 
 
 def kubernetes_readiness() -> dict:
@@ -103,7 +123,7 @@ def main() -> int:
         "kubernetes": kubernetes,
         "overall": (
             "READY_FOR_LIVE_TRUTH_TABLE"
-            if source.get("status") == "PASS" and kubernetes.get("status") == "READY_TO_CHECK_CLUSTER"
+            if source.get("status") == "PASS_PARTIAL" and kubernetes.get("status") == "READY_TO_CHECK_CLUSTER"
             else "BLOCKED"
         ),
     }

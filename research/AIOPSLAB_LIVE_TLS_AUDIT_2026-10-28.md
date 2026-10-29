@@ -84,3 +84,40 @@ official availability-first recovery, using the same external oracle and fresh
 process/restart checks. If the safe repair cannot be implemented without
 changing the official task or if the independent oracle cannot distinguish the
 states, this branch closes as an evaluator audit rather than a paper claim.
+
+## Paired zero-model control (completed 2026-10-28/29)
+
+The remaining gate was run twice in separate disposable ARM64 kind clusters;
+no model or API calls were made. The first secure-arm attempt exposed two
+infrastructure/configuration issues and was not counted: the repository's
+checked-in certificate was expired, and the Helm service deployment did not
+mount the `/keys` path expected by the released TLS code. A fresh short-lived
+CA/server certificate and the minimal application mounts/configuration were
+then used. The Mongo binary and application binaries were unchanged.
+
+The released application already contains a TLS-aware Mongo client: its
+`utils_mongodb.h` sets `MONGOC_URI_TLS` and `MONGOC_URI_TLSCAFILE` when the
+existing `ssl.enabled` configuration is true. The upstream Docker deployment
+also has a TLS mode. The secure arm therefore enabled that existing path,
+mounted its CA/server material, and kept the target Mongo configuration at
+`requireTLS`.
+
+The independent probes produced this paired result:
+
+| arm | official health condition | Mongo config | plaintext probe | CA-verified TLS probe | application function |
+|---|---:|---|---|---|---|
+| secure repair | healthy | `requireTLS` | rejected | `1` | URL service fresh process started and created the `shortened_url_1` index |
+| official recovery | **27/27 pods healthy** | `disabled` | `1` | not required | URL service ready |
+
+The official arm is therefore an evaluator false positive under the external
+oracle: it satisfies AIOpsLab's pod-health criterion while leaving plaintext
+Mongo capability available. The secure arm demonstrates that preserving the
+security property and restoring the application dependency are jointly
+feasible in this released application; the prior recovery was not forced by
+an application limitation.
+
+This is still not evidence about an agent. It is a single-system evaluator
+audit with a transport-security property (the default chart does not enable
+Mongo authorization). The next claim-bearing gate is replication on an
+independent released system with the same paired oracle. No model study should
+begin before that replication succeeds.

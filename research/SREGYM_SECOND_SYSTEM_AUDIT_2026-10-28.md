@@ -114,6 +114,12 @@ inferred from the zero-model control.
   requires a Kind cluster and roughly 8 vCPU/16 GiB; the repository also uses
   large application images. No local live run was attempted under this storage
   constraint.
+* The previously configured DSI login is reachable (`login.ds.uchicago.edu`),
+  and a compute node has 32 CPUs, 125 GiB RAM, and about 51 GiB free. However,
+  it has no `kind`, `kubectl`, or `helm` installation, and the Docker socket is
+  inaccessible to the user (`permission denied`). A short Slurm allocation was
+  therefore used only for this read-only capability check; no cluster or
+  benchmark workload was launched.
 * `revoke_auth` and `storage_user_unregistered` are AIOpsLab-origin tasks in
   SREGym and are not being used as the independent replication. The PSA task is
   explicitly marked `New` in SREGym's problem list.

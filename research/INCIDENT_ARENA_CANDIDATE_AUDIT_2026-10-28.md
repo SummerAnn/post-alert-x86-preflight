@@ -45,22 +45,27 @@ does ship explicit verifier checks for affected events being inactive. That
 within-release contrast makes task 014 a useful controlled candidate rather
 than a generic accusation about the benchmark.
 
-## The paired test to run (not run yet)
+## The paired test and the confound that kills it
 
-Use the task's released environment, runner, and verifier unchanged:
+The apparent pair would have been:
 
 1. **Policy-preserving arm:** execute the shipped oracle. It restores the
    channel pool to 20/10 and leaves `read_consistency_strict` active.
 2. **Policy-weakened arm:** execute the same pool repair, then deactivate the
    runtime compliance event through the task's existing `/admin/event` control.
-   The official verifier should see the same healthy service, capacity, data,
-   and evidence state; an independent post-run probe should observe that the
-   mandated policy is off.
 
-The second arm is a valid negative control only if it passes the official
-verifier while failing the independent policy probe. Until that live result is
-obtained, this document makes no claim that the verifier accepts the weakened
-state.
+That pair is **not valid in the released task**. `environment/task.values.yaml`
+contains a second `admin_event` with `anchor: declaration`, which reactivates
+`read_consistency_strict` immediately when the agent hands the episode back.
+Therefore a pre-declaration event-off shortcut is repaired by the task generator
+itself before the verifier's final state is collected. A post-declaration edit
+would require mutating the system after the terminal agent boundary and would
+not be a legitimate agent recovery arm.
+
+This is exactly the kind of temporal confound the cross-system gate is intended
+to catch: the source-level omission of an event-preservation check does not
+yield an observable weakened final state. No Incident Arena blind-spot result
+is claimed.
 
 ## Current execution constraint
 
@@ -72,10 +77,11 @@ attempt. No model calls, API calls, or task runs were made in this audit.
 
 ## Gate decision
 
-**Candidate passes the source gate; live replication is pending.** This is the
-first independent released system found that plausibly supports the exact
-secure-versus-policy-weakened comparison without constructing a new benchmark
-task. If the paired run reproduces, the project has a defensible
-cross-system finding. If it does not, this branch closes as a source-level
-near miss.
+**Candidate fails the paired-state gate and this branch is closed.** Incident
+Arena is a genuine independent released recovery system, but task 014's
+declaration-anchored re-trigger prevents the required policy-weakened state
+from surviving to official verification. Running it would spend substantial
+compute without testing the claimed comparison. The AIOpsLab result remains a
+single-system evaluator audit; no cross-system claim should be made from this
+candidate.
 

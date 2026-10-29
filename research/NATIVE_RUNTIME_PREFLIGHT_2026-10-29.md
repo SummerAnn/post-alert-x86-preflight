@@ -25,11 +25,22 @@ info` fails because the cluster user namespace mapping lacks the required
 `newgidmap` setup. No remote files, jobs, containers, or model calls were
 created.
 
+An allocated `dev` node (`g009`) was also checked with short, read-only Slurm
+probes. It is `x86_64` and has Docker 29.9.2, Podman 4.9.3, and Apptainer, but
+the account is not in the `docker` group (`/var/run/docker.sock` is
+`root:docker`), Podman fails with the same `newgidmap`/sub-ID restriction even
+when pointed at temporary user-owned storage, and no `kubectl`, Kind, or
+Minikube installation or user kubeconfig exists. Slurm's configuration reports
+no container plugin (`JobContainerType = (null)`). Apptainer therefore cannot
+stand in for the released Docker/Kubernetes orchestration without changing the
+system under test.
+
 ## Gate decision
 
 The cross-system agent study must not start on the local ARM cluster or the DSI
-login host. A native x86 Kubernetes/container runtime is required first. The
-provider keys and exact model IDs are valid, and both released agent paths now
-import in the isolated Python 3.12 environment, but those facts do not waive
-the native-runtime gate.
+login/compute environment as currently provisioned. A native x86 Kubernetes /
+container runtime with account access is required first (for example, Docker
+group access plus Kind, or an existing kubeconfig). The provider keys and exact
+model IDs are valid, and both released agent paths now import in the isolated
+Python 3.12 environment, but those facts do not waive the native-runtime gate.
 

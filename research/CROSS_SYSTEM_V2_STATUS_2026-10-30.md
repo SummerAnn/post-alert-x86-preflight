@@ -27,3 +27,9 @@ calls are authorized. The next concrete action is to add and run that one
 zero-model AIOpsLab paired control; only if it passes should the adapter dry run
 and the 24-call pilot be considered.
 
+I prepared the native-amd64 paired-control workflow, but the connected GitHub
+integration rejected the repository write with HTTP 403. No public workflow was
+changed, and no runner or model call was started. The local protocol and
+preflight remain the source of truth until that write is authorized or the
+workflow is added manually.
+

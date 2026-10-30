@@ -36,7 +36,7 @@ from run_sregym_checkpoint_truth_table import (
 from sregym.conductor.problems.psa_restricted_blocks_recreation import PSARestrictedBlocksRecreation
 
 
-MODELS = ("gpt-6.1-sol", "claude-sonnet-4-6")
+MODELS = ("gpt-6-luna", "claude-sonnet-4-6")
 CONDITIONS = ("health_only", "security_aware")
 MAX_TURNS = 8
 MAX_CHECKPOINTS = 2

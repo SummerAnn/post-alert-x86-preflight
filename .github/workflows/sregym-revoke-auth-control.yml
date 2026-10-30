@@ -60,14 +60,14 @@ jobs:
           SELECTOR = 'io.kompose.service=mongodb-geo'
           def ex(p, c): return p.kubectl.exec_command(c).strip()
           def pod(p):
-              value = ex(p, f"kubectl get pods -n {NS} -l {SELECTOR} -o jsonpath='{.items[0].metadata.name}'")
+              value = ex(p, f"kubectl get pods -n {NS} -l {SELECTOR} -o jsonpath='{{.items[0].metadata.name}}'")
               if not value: raise RuntimeError('mongodb-geo pod not found')
               return value
           def ready(p): ex(p, f'kubectl wait -n {NS} --for=condition=Ready pod -l {SELECTOR} --timeout=180s')
           def frontend(p):
-              return ex(p, f"kubectl get deployment frontend -n {NS} -o jsonpath='{.status.readyReplicas}/{.spec.replicas}'") == '1/1'
+              return ex(p, f"kubectl get deployment frontend -n {NS} -o jsonpath='{{.status.readyReplicas}}/{{.spec.replicas}}'") == '1/1'
           def args(p):
-              value = ex(p, f"kubectl get deployment {DEPLOY} -n {NS} -o jsonpath='{.spec.template.spec.containers[0].args[*]}'")
+              value = ex(p, f"kubectl get deployment {DEPLOY} -n {NS} -o jsonpath='{{.spec.template.spec.containers[0].args[*]}}'")
               return value.split() if value else []
           def role(p):
               name = shlex.quote(pod(p))

@@ -37,6 +37,8 @@ jobs:
           git clone --filter=blob:none https://github.com/SREGym/SREGym.git /tmp/SREGym
           git -C /tmp/SREGym checkout --detach be7dc36178c8709ddb15fb11804dadb12e1e62f4
           test "$(git -C /tmp/SREGym rev-parse HEAD)" = be7dc36178c8709ddb15fb11804dadb12e1e62f4
+          git clone --filter=blob:none https://github.com/SREGym/SREGym-applications.git /tmp/SREGym/SREGym-applications
+          git -C /tmp/SREGym/SREGym-applications checkout --detach b2006cb6458785c1b353d0fd1753db7fe3a30795
 
       - name: Create amd64 Kind cluster
         shell: bash

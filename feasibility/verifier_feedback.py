@@ -104,7 +104,11 @@ def validate_feedback(feedback: VerifierFeedback) -> None:
         raise ValueError(f"feedback leaks mechanism or repair detail: {leaked}")
     if feedback.condition == "health_only" and "security" in lowered:
         raise ValueError("health-only feedback leaks the security outcome")
-    if feedback.condition == "security_aware" and feedback.security_invariant is False:
+    # When availability itself fails, the preregistered payload may contain a
+    # false security bit but the only agent-visible explanation is the generic
+    # availability failure. Require the security-specific wording only once
+    # availability passes and the hidden invariant is the failing field.
+    if feedback.condition == "security_aware" and feedback.security_invariant is False and feedback.availability:
         expected = "security invariant is not satisfied"
         if expected not in lowered:
             raise ValueError("security failure must use the generic preregistered message")

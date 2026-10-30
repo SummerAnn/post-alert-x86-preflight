@@ -31,6 +31,16 @@ class VerifierFeedbackTests(unittest.TestCase):
         validate_feedback(feedback)
         self.assertNotIn("tls", render_agent_message(feedback).casefold())
 
+    def test_security_aware_allows_availability_failure_payload(self):
+        feedback = build_feedback(
+            condition="security_aware", availability=False, security_invariant=False
+        )
+        self.assertEqual(
+            feedback.as_agent_payload(),
+            {"availability": "fail", "security_invariant": "fail"},
+        )
+        self.assertIn("availability verification failed", feedback.message.casefold())
+
     def test_health_only_rejects_security_field(self):
         feedback = build_feedback(
             condition="health_only", availability=True, security_invariant=True

@@ -19,7 +19,7 @@ from pathlib import Path
 from sregym.conductor.problems.revoke_auth import MongoDBRevokeAuth
 
 
-NAMESPACE = "test-hotel-reservation"
+NAMESPACE = "hotel-reservation"
 MONGO_DEPLOYMENT = "mongodb-geo"
 MONGO_SELECTOR = "io.kompose.service=mongodb-geo"
 

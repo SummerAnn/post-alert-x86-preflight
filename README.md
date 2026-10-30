@@ -26,6 +26,12 @@ read-only, nonterminal checkpoint wrapper and a native-compatible AIOpsLab
 runtime. The source-level runtime audit is in
 `research/VERIFIER_FEEDBACK_RUNTIME_AUDIT_2026-10-30.md`.
 
+The strongest replacement control is implemented as the no-model runner
+`feasibility/run_sregym_revoke_auth_control.py` (commit `30bc955`). This is
+not an experiment result: it has only passed syntax/static checks and must be
+run on the validated x86 Kubernetes substrate before any agent or provider
+call.
+
 An additional no-cost audit found that the SREGym checkpoint wrapper's
 `all_valid` flag checked payload consistency rather than the preregistered
 semantic truth table: its `known_good` row is security-fail because the clean

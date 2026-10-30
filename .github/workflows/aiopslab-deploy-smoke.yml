@@ -64,7 +64,7 @@ jobs:
           orchestrator.register_agent(object(), name='deployment-smoke')
           description, instructions, actions = orchestrator.init_problem('noop_detection_hotel_reservation-1')
           problem = orchestrator.session.problem
-          print('INITIALIZED_PROBLEM=', problem.pid)
+          print('INITIALIZED_PROBLEM_CLASS=', type(problem).__name__)
           print('NAMESPACE=', problem.namespace)
           print('DESCRIPTION_CHARS=', len(description))
           print('ACTION_COUNT=', len(actions))

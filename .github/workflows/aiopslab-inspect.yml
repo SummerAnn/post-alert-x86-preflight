@@ -1,0 +1,27 @@
+name: AIOpsLab release inspection
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Inspect the pinned AIOpsLab release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/microsoft/AIOpsLab.git /tmp/aiopslab
+          git -C /tmp/aiopslab checkout --detach 576c3f080c7ae2459a972afd4a2f8d5f01828430
+          echo '=== TOP LEVEL ==='
+          find /tmp/aiopslab -maxdepth 2 -type f | sort | sed -n '1,240p'
+          echo '=== README / QUICKSTART / INSTALL REFERENCES ==='
+          rg -n -i 'quick.?start|install|deploy|kind|kubernetes|docker compose|helm|setup|run ' /tmp/aiopslab --glob 'README*' --glob '*.md' --glob '*.yml' --glob '*.yaml' --glob 'Makefile' | sed -n '1,260p' || true
+          echo '=== CONTROL FILES ==='
+          find /tmp/aiopslab -maxdepth 3 -type f \( -name 'Makefile' -o -name 'pyproject.toml' -o -name 'requirements*.txt' -o -name 'docker-compose*.yml' -o -name '*compose*.yaml' -o -name '*.sh' \) -print | sort
+          echo '=== README ==='
+          for f in /tmp/aiopslab/README*; do [ -f "$f" ] && sed -n '1,260p' "$f"; done

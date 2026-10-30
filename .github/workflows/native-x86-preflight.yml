@@ -1,0 +1,83 @@
+name: Native x86 runtime preflight
+
+on:
+  workflow_dispatch:
+
+jobs:
+  preflight:
+    # Public repositories receive this standard x64 runner at no charge.
+    # This workflow is deliberately manual and makes no model/API calls.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out this protocol repository
+        uses: actions/checkout@v4
+
+      - name: Assert native x86 runner and Docker access
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "x86_64"
+          docker info --format 'server={{.ServerVersion}} arch={{.Architecture}}'
+          df -h /
+
+      - name: Install pinned Kind and check kubectl
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSLo /tmp/kind https://kind.sigs.k8s.io/dl/v0.27.0/kind-linux-amd64
+          echo 'a6875aaea358acf0ac07786b1a6755d08fd640f4c79b7a2e46681cc13f49a04b  /tmp/kind' | sha256sum -c -
+          chmod +x /tmp/kind
+          /tmp/kind version
+          kubectl version --client=true
+
+      - name: Fetch the exact released source commits
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/microsoft/AIOpsLab.git /tmp/aiopslab-live
+          git -C /tmp/aiopslab-live checkout --detach 576c3f080c7ae2459a972afd4a2f8d5f01828430
+          git clone --filter=blob:none https://github.com/SREGym/SREGym.git /tmp/SREGym
+          git -C /tmp/SREGym checkout --detach be7dc36178c8709ddb15fb11804dadb12e1e62f4
+          test "$(git -C /tmp/aiopslab-live rev-parse HEAD)" = 576c3f080c7ae2459a972afd4a2f8d5f01828430
+          test "$(git -C /tmp/SREGym rev-parse HEAD)" = be7dc36178c8709ddb15fb11804dadb12e1e62f4
+
+      - name: Verify key application manifests support amd64
+        shell: bash
+        run: |
+          set -euo pipefail
+          for image in \
+            yg397/media-frontend:xenial \
+            deathstarbench/social-network-microservices:latest; do
+            docker manifest inspect "$image" >/tmp/manifest.json
+            python - "$image" /tmp/manifest.json <<'PY'
+          import json
+          import sys
+
+          image, path = sys.argv[1:]
+          data = json.load(open(path, encoding="utf-8"))
+          manifests = data.get("manifests", [])
+          if manifests:
+              arches = {m.get("platform", {}).get("architecture") for m in manifests}
+              assert "amd64" in arches, (image, arches)
+          else:
+              assert data.get("architecture") in (None, "amd64"), (image, data.get("architecture"))
+          print(image, "supports linux/amd64")
+          PY
+          done
+
+      - name: Create and inspect a native Kind cluster
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/kind create cluster \
+            --name postalert-x86-preflight \
+            --config /tmp/aiopslab-live/kind/kind-config-x86.yaml \
+            --wait 180s
+          kubectl get nodes -o wide
+          test "$(kubectl get nodes -o jsonpath='{.items[0].status.nodeInfo.architecture}')" = "amd64"
+
+      - name: Tear down the disposable cluster
+        if: always()
+        run: /tmp/kind delete cluster --name postalert-x86-preflight

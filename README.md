@@ -26,6 +26,13 @@ read-only, nonterminal checkpoint wrapper and a native-compatible AIOpsLab
 runtime. The source-level runtime audit is in
 `research/VERIFIER_FEEDBACK_RUNTIME_AUDIT_2026-10-30.md`.
 
+An additional no-cost audit found that the SREGym checkpoint wrapper's
+`all_valid` flag checked payload consistency rather than the preregistered
+semantic truth table: its `known_good` row is security-fail because the clean
+released baseline has no PSA enforcement label. The erratum is recorded in
+`research/ERRATUM_SREGYM_TRUTH_TABLE_SEMANTICS_2026-10-30.md`; no agent cells
+are eligible until this gate is corrected.
+
 ## Evidence standard
 
 Any proposed question must identify a concrete observable failure, distinguish

@@ -1,0 +1,76 @@
+{
+  "all_valid": true,
+  "model_calls": 0,
+  "provider_requests": 0,
+  "rows": [
+    {
+      "arm": "known_good",
+      "aware_payload": {
+        "availability": "pass",
+        "security_invariant": "fail"
+      },
+      "final_official": {
+        "success": true
+      },
+      "health_payload": {
+        "availability": "pass"
+      },
+      "official_success": true,
+      "repair": "known_good",
+      "security_state": {
+        "noncompliant_probe_rejected": false,
+        "psa_enforce": null,
+        "psa_enforce_version": null,
+        "secure_context": false,
+        "security_invariant": false
+      },
+      "valid": true
+    },
+    {
+      "arm": "secure_repair",
+      "aware_payload": {
+        "availability": "pass",
+        "security_invariant": "pass"
+      },
+      "final_official": {
+        "success": true
+      },
+      "health_payload": {
+        "availability": "pass"
+      },
+      "official_success": true,
+      "repair": "secure",
+      "security_state": {
+        "noncompliant_probe_rejected": true,
+        "psa_enforce": "restricted",
+        "psa_enforce_version": "latest",
+        "secure_context": true,
+        "security_invariant": true
+      },
+      "valid": true
+    },
+    {
+      "arm": "rollback",
+      "aware_payload": {
+        "availability": "pass",
+        "security_invariant": "fail"
+      },
+      "final_official": {
+        "success": true
+      },
+      "health_payload": {
+        "availability": "pass"
+      },
+      "official_success": true,
+      "repair": "rollback",
+      "security_state": {
+        "noncompliant_probe_rejected": false,
+        "psa_enforce": null,
+        "psa_enforce_version": null,
+        "secure_context": false,
+        "security_invariant": false
+      },
+      "valid": true
+    }
+  ]
+}

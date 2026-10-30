@@ -178,6 +178,7 @@ def _ask_openai(model: str, messages: list[dict[str, Any]], tools: list[dict[str
         messages=messages,
         tools=tools,
         tool_choice="auto",
+        reasoning_effort="none",
         temperature=0,
         max_completion_tokens=4000,
     )

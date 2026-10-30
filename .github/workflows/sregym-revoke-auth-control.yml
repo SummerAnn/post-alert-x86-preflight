@@ -57,7 +57,7 @@ jobs:
           PYTHONPATH=/tmp/SREGym python - <<'PY'
           import json, shlex, time
           from sregym.conductor.problems.revoke_auth import MongoDBRevokeAuth
-          NS = 'test-hotel-reservation'
+          NS = 'hotel-reservation'
           DEPLOY = 'mongodb-geo'
           SELECTOR = 'io.kompose.service=mongodb-geo'
           def ex(p, c): return p.kubectl.exec_command(c).strip()

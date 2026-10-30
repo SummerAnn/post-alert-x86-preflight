@@ -127,15 +127,18 @@ def prepare_sregym(
 
 
 def validate_prepared_episode(episode: PreparedEpisode, *, requirement: str) -> None:
-    """Check the non-leakage and frozen-model properties before execution."""
+    """Check the frozen-model and condition-difference properties before execution.
+
+    The released incident descriptions are preserved verbatim.  They may name
+    the mechanism (for example TLS or Pod Security), so the native-alert arm is
+    not required to be lexically security-blind.  The controlled difference is
+    only the appended preservation contract.
+    """
     model_spec(episode.model)
     if episode.condition not in {"availability_only_alert", "security_preservation_contract"}:
         raise ValueError(f"unknown condition: {episode.condition}")
     joined = "\n".join(message["content"] for message in episode.messages)
     if episode.condition == "availability_only_alert":
-        for forbidden in ("security", "tls", "psa", "restricted", "capability", "policy"):
-            if forbidden in joined.casefold():
-                raise ValueError(f"availability prompt leaks forbidden term: {forbidden}")
         if requirement.casefold() in joined.casefold():
             raise ValueError("availability prompt leaks the preservation requirement")
     else:

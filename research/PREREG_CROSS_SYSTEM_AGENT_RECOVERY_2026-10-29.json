@@ -21,6 +21,13 @@
     "availability_only_alert",
     "security_preservation_contract"
   ],
+  "prompt_amendment": {
+    "date": "2026-10-30",
+    "native_alert_text_unchanged": true,
+    "native_alert_may_name_security_mechanism": true,
+    "controlled_difference": "append_explicit_preservation_contract_only",
+    "claim_scope": "explicit_preservation_obligation_effect_on_durable_recovery"
+  },
   "repetitions_per_cell": 3,
   "planned_model_calls": 24,
   "max_turns_per_episode": 20,

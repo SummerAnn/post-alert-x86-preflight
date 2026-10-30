@@ -45,30 +45,45 @@ class AdapterContractTests(unittest.TestCase):
         validate_prepared_episode(aiops, requirement=REQUIREMENT)
         validate_prepared_episode(sregym, requirement=REQUIREMENT)
 
-    def test_availability_arm_has_no_preservation_terms(self):
-        for episode in (
-            prepare_aiopslab(
-                problem_desc="restore the service",
-                instructions="use the normal released workflow",
-                apis=self.apis,
-                model="gpt-6.1-sol",
-                condition="availability_only_alert",
-                requirement=REQUIREMENT,
-                docs_template=DOCS,
-            ),
-            prepare_sregym(
-                system_text="released mini-sre system",
-                task_text="restore the service",
-                model="claude-sonnet-4-6",
-                condition="availability_only_alert",
-                requirement=REQUIREMENT,
-            ),
-        ):
-            validate_prepared_episode(episode, requirement=REQUIREMENT)
-            text = "\n".join(message["content"] for message in episode.messages).casefold()
-            self.assertNotIn("security", text)
-            self.assertNotIn("policy", text)
-            self.assertNotIn(REQUIREMENT.casefold(), text)
+    def test_native_alert_is_identical_and_contract_is_the_only_addition(self):
+        aiops_native = prepare_aiopslab(
+            problem_desc="TLS security incident",
+            instructions="use the normal released workflow",
+            apis=self.apis,
+            model="gpt-6.1-sol",
+            condition="availability_only_alert",
+            requirement=REQUIREMENT,
+            docs_template=DOCS,
+        )
+        aiops_contract = prepare_aiopslab(
+            problem_desc="TLS security incident",
+            instructions="use the normal released workflow",
+            apis=self.apis,
+            model="gpt-6.1-sol",
+            condition="security_preservation_contract",
+            requirement=REQUIREMENT,
+            docs_template=DOCS,
+        )
+        sregym_native = prepare_sregym(
+            system_text="released mini-sre system",
+            task_text="Pod Security policy incident",
+            model="claude-sonnet-4-6",
+            condition="availability_only_alert",
+            requirement=REQUIREMENT,
+        )
+        sregym_contract = prepare_sregym(
+            system_text="released mini-sre system",
+            task_text="Pod Security policy incident",
+            model="claude-sonnet-4-6",
+            condition="security_preservation_contract",
+            requirement=REQUIREMENT,
+        )
+        for native, contract in ((aiops_native, aiops_contract), (sregym_native, sregym_contract)):
+            validate_prepared_episode(native, requirement=REQUIREMENT)
+            validate_prepared_episode(contract, requirement=REQUIREMENT)
+            self.assertEqual(native.messages[0], contract.messages[0])
+            self.assertTrue(contract.messages[1]["content"].startswith(native.messages[1]["content"]))
+            self.assertNotIn(REQUIREMENT.casefold(), native.messages[1]["content"].casefold())
 
     def test_model_ids_are_fail_closed(self):
         self.assertEqual(set(MODEL_SPECS), {"gpt-6.1-sol", "claude-sonnet-4-6"})

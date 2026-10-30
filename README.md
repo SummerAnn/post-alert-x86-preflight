@@ -33,6 +33,12 @@ released baseline has no PSA enforcement label. The erratum is recorded in
 `research/ERRATUM_SREGYM_TRUTH_TABLE_SEMANTICS_2026-10-30.md`; no agent cells
 are eligible until this gate is corrected.
 
+The same issue applies to AIOpsLab: its clean chart starts with MongoDB TLS
+disabled while the proposed invariant is post-incident TLS enforcement. This
+cross-system erratum and a review-only amendment draft are in
+`research/ERRATUM_CROSS_SYSTEM_KNOWN_GOOD_SEMANTICS_2026-10-30.md` and
+`research/BASELINE_SEMANTICS_AMENDMENT_DRAFT_2026-10-30.md`.
+
 ## Evidence standard
 
 Any proposed question must identify a concrete observable failure, distinguish

@@ -98,6 +98,13 @@ are truthful and discriminative.
 
 ## 6. Episode protocol
 
+**Runtime gate:** the released systems currently expose terminal or
+stage-advancing submission, not a nonterminal evaluator checkpoint. No model
+call is permitted until the separate wrapper feasibility audit
+(`research/VERIFIER_FEEDBACK_RUNTIME_AUDIT_2026-10-30.md`) demonstrates a
+read-only checkpoint that invokes the unchanged released availability oracle.
+An after-the-fact score is not verifier feedback and cannot be substituted.
+
 Each episode starts from a fresh disposable instance after a healthy baseline.
 The agent may inspect and repair through the released tool interface and may
 submit for verification up to a fixed number of checkpoints. Both conditions

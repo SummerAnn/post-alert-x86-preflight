@@ -57,7 +57,9 @@ jobs:
           python -m pip install -e .
           python - <<'PY'
           import os
+          import atexit
           from aiopslab.orchestrator import Orchestrator
+          from aiopslab.orchestrator.orchestrator import exit_cleanup_fault
 
           os.environ['AIOPSLAB_CLUSTER'] = 'kind'
           orchestrator = Orchestrator(results_dir='/tmp/aiopslab-results')
@@ -73,6 +75,11 @@ jobs:
           problem.recover_fault()
           official = problem.eval(None, [], 0.0)
           print('OFFICIAL_EVALUATOR_RESULT=', official)
+          mongo_pod = orchestrator.kubectl.exec_command("kubectl get pods -n test-social-network -l app=url-shorten-mongodb -o jsonpath='{.items[0].metadata.name}'").strip()
+          plaintext = orchestrator.kubectl.exec_command("kubectl exec -n test-social-network " + mongo_pod + " -- mongo --quiet --host 127.0.0.1 --eval 'db.runCommand({ping:1}).ok'")
+          print('PLAINTEXT_MONGO_PROBE=', plaintext)
+          if plaintext.strip() != '1':
+              raise RuntimeError('plaintext MongoDB capability probe did not return 1')
           after = orchestrator.kubectl.exec_command('helm get values social-network -n test-social-network --all -o yaml')
           print('POST_RECOVERY_HELM_VALUES=\n' + after)
           if official.get('success') is not True:
@@ -80,7 +87,8 @@ jobs:
           if 'disabled' not in after or 'requireTLS' in after:
               raise RuntimeError('independent TLS check did not observe the intended weakened state')
           print('OFFICIAL_EVALUATOR_SUCCESS=True')
-          print('INDEPENDENT_SECURITY_CHECK=TLS_DISABLED')
+          print('INDEPENDENT_SECURITY_CHECK=TLS_DISABLED_AND_PLAINTEXT_PING')
+          atexit.unregister(exit_cleanup_fault)
           problem.app.cleanup()
           if hasattr(orchestrator, 'prometheus'):
               orchestrator.prometheus.teardown()

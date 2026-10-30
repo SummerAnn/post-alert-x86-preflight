@@ -12,8 +12,19 @@ unchanged, and what evidence is sufficient to safely resume operation?
 
 ## Current status
 
-No research question, hypothesis, benchmark, model, or experiment is frozen.
-The first phase is literature and phenomenon discovery with no model API calls.
+The zero-model cross-system control is complete: the released AIOpsLab and
+SREGym evaluators accept both a security-preserving repair and an
+availability-first rollback. The current pivot is preregistered in
+`research/PREREG_VERIFIER_FEEDBACK_PIVOT_2026-10-30.md`:
+
+> Do availability-only verifier feedback induce agents to choose destructive
+> recovery shortcuts, and can security-aware feedback reduce those shortcuts
+> without sacrificing legitimate availability?
+
+No model calls have been made for this pivot. The study is blocked on a
+read-only, nonterminal checkpoint wrapper and a native-compatible AIOpsLab
+runtime. The source-level runtime audit is in
+`research/VERIFIER_FEEDBACK_RUNTIME_AUDIT_2026-10-30.md`.
 
 ## Evidence standard
 

@@ -92,6 +92,30 @@ def main() -> int:
     elif not any(" Ready " in f" {line} " for line in kubectl_out.splitlines()):
         errors.append("no Kubernetes node is Ready")
 
+    # The AIOpsLab confirmatory cells require the published application image
+    # on a compatible architecture.  The earlier local ARM rebuild is
+    # feasibility evidence only and must never be silently pooled with native
+    # image cells.
+    nodes_ok, nodes_json = command("kubectl", "get", "nodes", "-o", "json")
+    architectures: list[str] = []
+    if nodes_ok:
+        try:
+            architectures = sorted(
+                {
+                    str(item.get("status", {}).get("nodeInfo", {}).get("architecture"))
+                    for item in json.loads(nodes_json).get("items", [])
+                    if item.get("status", {}).get("nodeInfo", {}).get("architecture")
+                }
+            )
+        except (TypeError, ValueError, json.JSONDecodeError):
+            errors.append("kubectl node architecture output is malformed")
+    checks["kubectl_node_architectures"] = architectures
+    if "amd64" not in architectures:
+        errors.append(
+            "AIOpsLab native-image gate requires an amd64 node; local architectures="
+            + (",".join(architectures) or "none")
+        )
+
     # Deliberately no provider request is made here.
     checks["provider_requests"] = 0
     checks["model_calls"] = 0

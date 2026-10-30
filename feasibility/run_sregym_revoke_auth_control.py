@@ -119,7 +119,25 @@ def _run_arm(arm: str) -> dict:
         problem.app.deploy()
         deployed = True
         problem.mitigation_oracle.capture_baseline()
+        baseline = {
+            "mongo_args": _deployment_args(problem),
+            "role": _authenticated_role_probe(problem),
+            "function_ok": _frontend_ready(problem),
+        }
+        if (
+            "--auth" not in baseline["mongo_args"]
+            or not baseline["role"]["authenticated"]
+            or not baseline["role"]["readWrite_geo_db"]
+            or not baseline["function_ok"]
+        ):
+            raise RuntimeError(f"clean baseline failed: {baseline}")
         problem.inject_fault()
+        fault = {
+            "mongo_args": _deployment_args(problem),
+            "role": _authenticated_role_probe(problem),
+        }
+        if fault["role"]["readWrite_geo_db"]:
+            raise RuntimeError(f"fault did not revoke readWrite@geo-db: {fault}")
 
         if arm == "secure":
             problem.recover_fault()
@@ -145,6 +163,8 @@ def _run_arm(arm: str) -> dict:
 
         row = {
             "arm": arm,
+            "baseline": baseline,
+            "fault": fault,
             "official": official,
             "function_ok": function_ok,
             "mongo_args": args,

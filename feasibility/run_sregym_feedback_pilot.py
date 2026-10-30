@@ -22,7 +22,7 @@ from typing import Any
 
 from kubernetes import client, config
 
-from checkpoint_controller import CheckpointController
+from checkpoint_controller import CheckpointController, CheckpointProtocolError
 from released_oracle_bindings import sregym_availability_checkpoint
 from run_sregym_checkpoint_truth_table import (
     APP_NAME,
@@ -164,7 +164,12 @@ class _LiveController(CheckpointController):
 
     def live_feedback(self) -> str:
         state = _state_for_controller(self._official_oracle.problem, self._core)
-        result = self.checkpoint(state, condition=self._condition, episode_open=True)
+        try:
+            result = self.checkpoint(state, condition=self._condition, episode_open=True)
+        except CheckpointProtocolError as exc:
+            if "budget exhausted" not in str(exc):
+                raise
+            return json.dumps({"checkpoint": "budget_exhausted"})
         return json.dumps(result.feedback.as_agent_payload(), sort_keys=True)
 
 

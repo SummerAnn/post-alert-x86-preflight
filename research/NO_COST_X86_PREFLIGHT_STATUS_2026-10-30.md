@@ -10,6 +10,11 @@ Repository: [SummerAnn/post-alert-x86-preflight](https://github.com/SummerAnn/po
 - [AIOpsLab credential-presence control, run 40996493991](https://github.com/SummerAnn/post-alert-x86-preflight/actions/runs/40996493991): success, explicitly labelled “no model.”
 - [AIOpsLab TLS durability audit, run 40997031001](https://github.com/SummerAnn/post-alert-x86-preflight/actions/runs/40997031001): success, explicitly labelled “no model.”
 
+The job logs provide the following independent checks:
+
+- Credential control: official evaluator `success=True`; MongoDB authenticated the expected admin user with `readWrite` on `geo-db` and `userAdminAnyDatabase`; the frontend remained `Running`; the disposable Kind cluster was deleted.
+- TLS durability audit: official evaluator `success=True`; plaintext MongoDB ping returned `1` both before and after replacing the MongoDB pod; the log marked `DURABILITY_CHECK=PASS`; the disposable Kind cluster was deleted.
+
 ## Interpretation
 
 This removes the local ARM-only machine as a blocker for the *no-model* controls and provides a candidate x86 execution substrate. It does **not** establish that the frozen 24-cell agent study has run, and it does not make provider API calls free. The next safe action is another no-model control/preflight on this substrate; the agent pilot remains deliberately unlaunched until its API cost is separately approved.

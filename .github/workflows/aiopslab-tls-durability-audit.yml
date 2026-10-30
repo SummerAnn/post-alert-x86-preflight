@@ -1,0 +1,123 @@
+name: AIOpsLab TLS durability audit (no model)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tls-durability:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Install Python and Helm
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.17.3
+      - name: Install pinned Kind
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSLo /tmp/kind https://kind.sigs.k8s.io/dl/v0.27.0/kind-linux-amd64
+          echo 'a6875aaea358acf0ac07786b1a6755d08fd640f4c79b7a2e46681cc13f49a04b  /tmp/kind' | sha256sum -c -
+          chmod +x /tmp/kind
+          /tmp/kind version
+          kubectl version --client=true
+      - name: Fetch pinned AIOpsLab release and application submodule
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --recurse-submodules --filter=blob:none https://github.com/microsoft/AIOpsLab.git /tmp/aiopslab
+          git -C /tmp/aiopslab checkout --detach 576c3f080c7ae2459a972afd4a2f8d5f01828430
+          git -C /tmp/aiopslab submodule update --init --recursive
+          test "$(git -C /tmp/aiopslab/aiopslab-applications rev-parse HEAD)" = 8038be6b4989c647126f27715acc591c47133c2d
+          test -d /tmp/aiopslab/aiopslab-applications/hotelReservation/kubernetes
+          cp /tmp/aiopslab/aiopslab/config.yml.example /tmp/aiopslab/aiopslab/config.yml
+          sed -i 's/^k8s_host:.*/k8s_host: kind/' /tmp/aiopslab/aiopslab/config.yml
+          sed -i 's/^k8s_user:.*/k8s_user: runner/' /tmp/aiopslab/aiopslab/config.yml
+          sed -i 's/^qualitative_eval:.*/qualitative_eval: false/' /tmp/aiopslab/aiopslab/config.yml
+      - name: Create official Kind cluster
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/kind create cluster --name kind --config /tmp/aiopslab/kind/kind-config-x86.yaml --wait 180s
+          kubectl get nodes -o wide
+          test "$(kubectl get nodes -o jsonpath='{.items[0].status.nodeInfo.architecture}')" = amd64
+      - name: Run official evaluator and fresh-process capability audit
+        working-directory: /tmp/aiopslab
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python - <<'PY'
+          import os
+          import atexit
+          from aiopslab.orchestrator import Orchestrator
+          from aiopslab.orchestrator.orchestrator import exit_cleanup_fault
+
+          os.environ['AIOPSLAB_CLUSTER'] = 'kind'
+          orchestrator = Orchestrator(results_dir='/tmp/aiopslab-results')
+          orchestrator.register_agent(object(), name='tls-durability-audit')
+          description, instructions, actions = orchestrator.init_problem('auth_miss_mongodb-mitigation-1')
+          problem = orchestrator.session.problem
+          print('PROBLEM_CLASS=', type(problem).__name__)
+          print('NAMESPACE=', problem.namespace)
+          before = orchestrator.kubectl.exec_command('helm get values social-network -n test-social-network --all -o yaml')
+          print('PRE_RECOVERY_HELM_VALUES=\n' + before)
+          if 'requireTLS' not in before:
+              raise RuntimeError('fault injection did not leave the expected requireTLS state')
+          problem.recover_fault()
+          official = problem.eval(None, [], 0.0)
+          print('OFFICIAL_EVALUATOR_RESULT=', official)
+          mongo_pod = orchestrator.kubectl.exec_command("kubectl get pods -n test-social-network -l app=url-shorten-mongodb -o jsonpath='{.items[0].metadata.name}'").strip()
+          if not mongo_pod:
+              raise RuntimeError('could not locate MongoDB pod')
+          plaintext_before = orchestrator.kubectl.exec_command("kubectl exec -n test-social-network " + mongo_pod + " -- mongo --quiet --host 127.0.0.1 --eval 'db.runCommand({ping:1}).ok'")
+          print('PLAINTEXT_MONGO_PROBE_BEFORE_RESTART=', plaintext_before)
+          if plaintext_before.strip() != '1':
+              raise RuntimeError('plaintext capability was not live after official recovery')
+          orchestrator.kubectl.exec_command("kubectl delete pod -n test-social-network " + mongo_pod + " --wait=false")
+          replacement = ''
+          for _ in range(60):
+              replacement = orchestrator.kubectl.exec_command("kubectl get pods -n test-social-network -l app=url-shorten-mongodb -o jsonpath='{.items[0].metadata.name}'").strip()
+              phase = orchestrator.kubectl.exec_command("kubectl get pod -n test-social-network " + replacement + " -o jsonpath='{.status.phase}'") if replacement else ''
+              if replacement and 'Running' in phase:
+                  break
+              import time
+              time.sleep(2)
+          if not replacement:
+              raise RuntimeError('replacement MongoDB pod did not appear')
+          plaintext_after = orchestrator.kubectl.exec_command("kubectl exec -n test-social-network " + replacement + " -- mongo --quiet --host 127.0.0.1 --eval 'db.runCommand({ping:1}).ok'")
+          print('REPLACEMENT_MONGO_POD=', replacement)
+          print('PLAINTEXT_MONGO_PROBE_AFTER_RESTART=', plaintext_after)
+          after = orchestrator.kubectl.exec_command('helm get values social-network -n test-social-network --all -o yaml')
+          print('POST_RECOVERY_HELM_VALUES=\n' + after)
+          if plaintext_after.strip() != '1':
+              raise RuntimeError('plaintext capability did not persist after fresh MongoDB process')
+          if official.get('success') is not True:
+              raise RuntimeError('official mitigation evaluator did not report success')
+          if 'disabled' not in after or 'requireTLS' in after:
+              raise RuntimeError('post-restart state did not remain explicitly disabled')
+          print('OFFICIAL_EVALUATOR_SUCCESS=True')
+          print('INDEPENDENT_SECURITY_CHECK=PLAINTEXT_MONGO_SURVIVES_FRESH_PROCESS')
+          print('DURABILITY_CHECK=PASS')
+          atexit.unregister(exit_cleanup_fault)
+          problem.app.cleanup()
+          if hasattr(orchestrator, 'prometheus'):
+              orchestrator.prometheus.teardown()
+          print('AIOPSLAB_TLS_DURABILITY_AUDIT=PASS')
+          PY
+      - name: Verify cleanup and tear down Kind
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          kubectl get pods -A -o wide || true
+          kubectl delete -f https://openebs.github.io/charts/openebs-operator.yaml --ignore-not-found=true || true
+          /tmp/kind delete cluster --name kind

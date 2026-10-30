@@ -85,14 +85,34 @@ jobs:
               o=Orchestrator(results_dir='/tmp/aiopslab-results'); o.register_agent(object(),name='revoke-auth-'+kind)
               _d,_i,_a=o.init_problem('revoke_auth_mongodb-mitigation-1'); problem=o.session.problem
               try:
-                  fault_role=role(o)
-                  if fault_role['readWrite_geo_db']: raise RuntimeError('fault did not revoke role')
+                  for _ in range(30):
+                      fault_role=role(o)
+                      if fault_role['authenticated'] and not fault_role['readWrite_geo_db']:
+                          break
+                      if fault_role['authenticated'] and fault_role['readWrite_geo_db']:
+                          n=shlex.quote(pod(o))
+                          ex(o,f"kubectl exec -n {NS} {n} -- /bin/bash /scripts/revoke-admin-geo-mongo.sh")
+                      time.sleep(2)
+                  else:
+                      raise RuntimeError('fault state did not become observable')
+                  if fault_role['readWrite_geo_db']:
+                      raise RuntimeError('fault did not revoke role')
                   if kind=='secure': problem.recover_fault()
                   else:
                       patch='[{"op":"replace","path":"/spec/template/spec/containers/0/args","value":[]}]'
                       ex(o,f"kubectl patch deployment {DEPLOY} -n {NS} --type=json -p={shlex.quote(patch)}"); ready(o)
                   official=problem.eval(None,[],0.0); row={'arm':kind,'official':official,'frontend':frontend(o),'args':args(o)}
                   if kind=='secure':
+                      problem.recover_fault()
+                      for _ in range(30):
+                          row['role']=role(o)
+                          if row['role']['authenticated'] and row['role']['readWrite_geo_db']:
+                              break
+                          n=shlex.quote(pod(o))
+                          ex(o,f"kubectl exec -n {NS} {n} -- /bin/bash /scripts/revoke-mitigate-admin-geo-mongo.sh")
+                          time.sleep(2)
+                      else:
+                          raise RuntimeError('secure role recovery was not observable')
                       row['role']=role(o)
                       if '--auth' not in row['args'] or not row['role']['authenticated'] or not row['role']['readWrite_geo_db']: raise RuntimeError('secure arm failed')
                       restart(o); row['fresh_role']=role(o)

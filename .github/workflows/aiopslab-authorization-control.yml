@@ -1,0 +1,102 @@
+name: AIOpsLab authorization control (no model)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  role-control:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Install Python and Helm
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.17.3
+      - name: Install pinned Kind
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSLo /tmp/kind https://kind.sigs.k8s.io/dl/v0.27.0/kind-linux-amd64
+          echo 'a6875aaea358acf0ac07786b1a6755d08fd640f4c79b7a2e46681cc13f49a04b  /tmp/kind' | sha256sum -c -
+          chmod +x /tmp/kind
+          /tmp/kind version
+          kubectl version --client=true
+      - name: Fetch the pinned AIOpsLab release and required application submodule
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --recurse-submodules --filter=blob:none https://github.com/microsoft/AIOpsLab.git /tmp/aiopslab
+          git -C /tmp/aiopslab checkout --detach 576c3f080c7ae2459a972afd4a2f8d5f01828430
+          git -C /tmp/aiopslab submodule update --init --recursive
+          test "$(git -C /tmp/aiopslab/aiopslab-applications rev-parse HEAD)" = 8038be6b4989c647126f27715acc591c47133c2d
+          test -d /tmp/aiopslab/aiopslab-applications/hotelReservation/kubernetes
+          cp /tmp/aiopslab/aiopslab/config.yml.example /tmp/aiopslab/aiopslab/config.yml
+          sed -i 's/^k8s_host:.*/k8s_host: kind/' /tmp/aiopslab/aiopslab/config.yml
+          sed -i 's/^k8s_user:.*/k8s_user: runner/' /tmp/aiopslab/aiopslab/config.yml
+          sed -i 's/^qualitative_eval:.*/qualitative_eval: false/' /tmp/aiopslab/aiopslab/config.yml
+      - name: Create the official Kind cluster
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/kind create cluster --name kind --config /tmp/aiopslab/kind/kind-config-x86.yaml --wait 180s
+          kubectl get nodes -o wide
+          test "$(kubectl get nodes -o jsonpath='{.items[0].status.nodeInfo.architecture}')" = amd64
+      - name: Run the official authorization mitigation and independent control
+        working-directory: /tmp/aiopslab
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python - <<'PY'
+          import os
+          import atexit
+          from aiopslab.orchestrator import Orchestrator
+          from aiopslab.orchestrator.orchestrator import exit_cleanup_fault
+
+          os.environ['AIOPSLAB_CLUSTER'] = 'kind'
+          orchestrator = Orchestrator(results_dir='/tmp/aiopslab-results')
+          orchestrator.register_agent(object(), name='authorization-control')
+          description, instructions, actions = orchestrator.init_problem('revoke_auth_mongodb-mitigation-1')
+          problem = orchestrator.session.problem
+          print('PROBLEM_CLASS=', type(problem).__name__)
+          print('NAMESPACE=', problem.namespace)
+          problem.recover_fault()
+          official = problem.eval(None, [], 0.0)
+          print('OFFICIAL_EVALUATOR_RESULT=', official)
+          mongo_pod = orchestrator.kubectl.exec_command("kubectl get pods -n test-hotel-reservation -o name | grep 'mongodb-geo' | head -1 | sed 's#pod/##'").strip()
+          if not mongo_pod:
+              raise RuntimeError('could not locate mongodb-geo pod')
+          roles = orchestrator.kubectl.exec_command("kubectl exec -n test-hotel-reservation " + mongo_pod + " -- mongo admin -u admin -p admin --authenticationDatabase admin --quiet --eval 'JSON.stringify(db.getUser(\"admin\").roles)'")
+          print('ROLE_PROBE=', roles)
+          if 'readWrite' not in roles or 'geo-db' not in roles:
+              raise RuntimeError('independent authorization check did not observe restored readWrite role on geo-db')
+          frontend = orchestrator.kubectl.exec_command("kubectl get pods -n test-hotel-reservation -o jsonpath='{.items[?(@.metadata.labels.app==\"frontend-hotel-reservation\")].status.phase}'")
+          print('FRONTEND_PHASE=', frontend)
+          if 'Running' not in frontend:
+              raise RuntimeError('legitimate frontend service was not running')
+          if official.get('success') is not True:
+              raise RuntimeError('official authorization mitigation evaluator did not report success')
+          print('OFFICIAL_EVALUATOR_SUCCESS=True')
+          print('INDEPENDENT_SECURITY_CHECK=ADMIN_READWRITE_GEO_DB')
+          print('LEGITIMATE_FUNCTION_CHECK=FRONTEND_RUNNING')
+          atexit.unregister(exit_cleanup_fault)
+          problem.app.cleanup()
+          if hasattr(orchestrator, 'prometheus'):
+              orchestrator.prometheus.teardown()
+          print('AIOPSLAB_AUTHORIZATION_CONTROL=PASS')
+          PY
+      - name: Verify cleanup and tear down Kind
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          kubectl get pods -A -o wide || true
+          /tmp/kind delete cluster --name kind

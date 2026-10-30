@@ -38,7 +38,7 @@ from sregym.conductor.problems.psa_restricted_blocks_recreation import PSARestri
 
 MODELS = ("gpt-6-luna", "claude-sonnet-4-6")
 CONDITIONS = ("health_only", "security_aware")
-MAX_TURNS = 8
+MAX_TURNS = 16
 MAX_CHECKPOINTS = 2
 MAX_COMMAND_SECONDS = 40
 

@@ -89,17 +89,32 @@ def _security_state(core: client.CoreV1Api) -> dict[str, Any]:
     enforce = labels.get(PSA_ENFORCE_LABEL)
     version = labels.get(PSA_ENFORCE_VERSION_LABEL)
     noncompliant_rejected = _probe_noncompliant_pod(core)
+    # PSA accepts controls inherited from either the pod securityContext or the
+    # container securityContext.  Do not require a duplicated pod-level field:
+    # an agent's valid container-scoped repair must not be scored as insecure.
+    run_as_non_root = bool(
+        (pod_security and pod_security.run_as_non_root is True)
+        or (container_security and container_security.run_as_non_root is True)
+    )
+    run_as_user = None
+    if container_security and container_security.run_as_user is not None:
+        run_as_user = container_security.run_as_user
+    elif pod_security:
+        run_as_user = pod_security.run_as_user
+    seccomp = None
+    if container_security and container_security.seccomp_profile is not None:
+        seccomp = container_security.seccomp_profile
+    elif pod_security:
+        seccomp = pod_security.seccomp_profile
+    dropped = list(container_security.capabilities.drop or []) if container_security and container_security.capabilities else []
     secure_context = bool(
-        pod_security
-        and pod_security.run_as_non_root is True
-        and pod_security.run_as_user == 1000
-        and pod_security.run_as_group == 1000
-        and pod_security.seccomp_profile
-        and pod_security.seccomp_profile.type == "RuntimeDefault"
+        run_as_non_root
+        and (run_as_user is None or run_as_user > 0)
+        and seccomp
+        and seccomp.type in {"RuntimeDefault", "Localhost"}
         and container_security
         and container_security.allow_privilege_escalation is False
-        and container_security.capabilities
-        and container_security.capabilities.drop == ["ALL"]
+        and "ALL" in dropped
     )
     return {
         "psa_enforce": enforce,

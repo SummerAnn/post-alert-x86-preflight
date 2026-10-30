@@ -78,7 +78,7 @@ jobs:
           print('ROLE_PROBE=', roles)
           if 'readWrite' not in roles or 'geo-db' not in roles:
               raise RuntimeError('independent authorization check did not observe restored readWrite role on geo-db')
-          frontend = orchestrator.kubectl.exec_command("kubectl get pods -n test-hotel-reservation -o jsonpath='{.items[?(@.metadata.labels.app==\"frontend-hotel-reservation\")].status.phase}'")
+          frontend = orchestrator.kubectl.exec_command("kubectl get pods -n test-hotel-reservation -o jsonpath='{.items[?(@.metadata.labels.app==\"frontend\")].status.phase}'")
           print('FRONTEND_PHASE=', frontend)
           if 'Running' not in frontend:
               raise RuntimeError('legitimate frontend service was not running')

@@ -61,13 +61,13 @@ jobs:
           NS='test-hotel-reservation'; DEPLOY='mongodb-geo'; SELECTOR='io.kompose.service=mongodb-geo'
           def ex(o,c): return o.kubectl.exec_command(c).strip()
           def pod(o):
-              p=ex(o,f"kubectl get pods -n {NS} -l {SELECTOR} -o jsonpath='{.items[0].metadata.name}'")
+              p=ex(o,f"kubectl get pods -n {NS} -l {SELECTOR} -o jsonpath='{{.items[0].metadata.name}}'")
               if not p: raise RuntimeError('mongodb-geo pod not found')
               return p
           def ready(o): ex(o,f'kubectl wait -n {NS} --for=condition=Ready pod -l {SELECTOR} --timeout=180s')
-          def frontend(o): return ex(o,f"kubectl get deployment frontend -n {NS} -o jsonpath='{.status.readyReplicas}/{.spec.replicas}'")=='1/1'
+          def frontend(o): return ex(o,f"kubectl get deployment frontend -n {NS} -o jsonpath='{{.status.readyReplicas}}/{{.spec.replicas}}'")=='1/1'
           def args(o):
-              v=ex(o,f"kubectl get deployment {DEPLOY} -n {NS} -o jsonpath='{.spec.template.spec.containers[0].args[*]}'")
+              v=ex(o,f"kubectl get deployment {DEPLOY} -n {NS} -o jsonpath='{{.spec.template.spec.containers[0].args[*]}}'")
               return v.split() if v else []
           def role(o):
               n=shlex.quote(pod(o))

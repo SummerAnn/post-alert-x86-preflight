@@ -34,22 +34,25 @@ OK
 ## Runtime import check
 
 `feasibility/adapter_preflight.py` was also run against the pinned source
-checkouts. Prompt modules import, but the current local environment does not
-contain all released runtime dependencies:
+checkouts both before and after installing the declared lightweight runtime
+dependencies in an isolated environment. Prompt modules import, but the local
+interpreter is macOS Python **3.9.6**, while the pinned releases require Python
+3.11--3.12:
 
 | released path | local result |
 |---|---|
 | AIOpsLab prompt template | importable |
-| AIOpsLab ReAct/orchestrator | blocked by missing `tiktoken` / `kubernetes` |
+| AIOpsLab ReAct/orchestrator | blocked by Python-3.9-incompatible type syntax (`type | type`) |
 | SREGym prompt module | importable |
-| SREGym conductor | blocked by missing `kubernetes` |
+| SREGym conductor | blocked by Python-3.9-incompatible `enum.StrEnum` |
 
-These are environment setup failures, not agent or recovery results. The
-source-pinned x86 control runner has already shown that both live substrates can
-boot and pass the paired zero-model security/function/durability checks. The
+These are interpreter-compatibility failures, not agent or recovery results.
+The source-pinned x86 control runner has already shown that both live substrates
+can boot and pass the paired zero-model security/function/durability checks. The
 remaining mechanical work is to run this adapter contract inside that pinned
-x86 environment and capture raw action-loop traces without making a provider
-request.
+x86/Python 3.12 environment and capture raw action-loop traces without making a
+provider request. The installed dependencies did not change the result, and no
+provider SDK call was made.
 
 ## Gate interpretation
 

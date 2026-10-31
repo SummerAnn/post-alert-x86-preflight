@@ -20,6 +20,14 @@ jobs:
           git -C /tmp/aiopslab checkout --detach 576c3f080c7ae2459a972afd4a2f8d5f01828430
           git clone --filter=blob:none https://github.com/SREGym/SREGym.git /tmp/sregym
           git -C /tmp/sregym checkout --detach be7dc36178c8709ddb15fb11804dadb12e1e62f4
+          cat > /tmp/aiopslab/aiopslab/config.yml <<'CFG'
+data_dir: data
+qualitative_eval: false
+print_session: false
+k8s_host: kind
+k8s_user: runner
+ssh_key_path: ~/.ssh/id_rsa
+CFG
       - name: Install import-only dependencies
         shell: bash
         run: |
@@ -38,6 +46,9 @@ jobs:
           from aiopslab.orchestrator import Orchestrator
           sys.path[:] = [p for p in sys.path if p != '/tmp/aiopslab']
           sys.path.insert(0, '/tmp/sregym')
+          for key in list(sys.modules):
+              if key == 'clients' or key.startswith('clients.'):
+                  del sys.modules[key]
           from clients.mini_sre import mini
           from sregym.conductor.conductor import Conductor
           requirement = 'keep the released security invariant enforced while restoring service'

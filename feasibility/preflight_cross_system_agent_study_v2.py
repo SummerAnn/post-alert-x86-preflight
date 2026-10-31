@@ -32,6 +32,15 @@ def git_head(path: Path) -> str | None:
 
 
 def main() -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="No-call preregistration and substrate preflight")
+    parser.add_argument(
+        "--execution-check",
+        action="store_true",
+        help="accept the separately recorded authorization and report execution readiness",
+    )
+    args = parser.parse_args()
     errors: list[str] = []
     checks: dict[str, object] = {"provider_requests": 0, "model_calls": 0}
     if not MANIFEST.exists():
@@ -40,8 +49,13 @@ def main() -> int:
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     if manifest.get("status") != "frozen-before-model-calls":
         errors.append("replacement manifest is not frozen-before-model-calls")
-    if manifest.get("model_calls_authorized") is not False:
-        errors.append("replacement manifest must keep model_calls_authorized=false")
+    authorized = manifest.get("model_calls_authorized") is True
+    if authorized and not args.execution_check:
+        errors.append("model_calls_authorized=true requires --execution-check")
+    if args.execution_check and not authorized:
+        errors.append("--execution-check requires an explicit authorization record")
+    if authorized and not manifest.get("authorization_note"):
+        errors.append("authorized manifest is missing authorization_note")
     if manifest.get("planned_model_calls") != 24:
         errors.append("planned_model_calls must remain 24")
     if manifest.get("repetitions_per_cell") != 3:
@@ -83,7 +97,7 @@ def main() -> int:
     checks["kubectl_nodes"] = kubectl_out if kubectl_ok else None
     if not kubectl_ok or not kubectl_out:
         errors.append("kubectl has no readable node")
-    checks["status"] = "ready_for_pinned_x86_adapter_dry_run"
+    checks["status"] = "ready_for_model_pilot" if authorized else "ready_for_pinned_x86_adapter_dry_run"
     print(json.dumps({"ready": not errors, "checks": checks, "errors": errors}, indent=2, sort_keys=True))
     return 0 if not errors else 1
 

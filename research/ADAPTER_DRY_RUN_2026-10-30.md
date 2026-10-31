@@ -25,10 +25,15 @@ Command and result:
 ```text
 PYTHONPATH=feasibility python3 -m unittest \
   test_cross_system_adapters test_adapter_preflight test_aiopslab_recovery_oracle
-...........
-Ran 11 tests in 0.033s
+..............
+Ran 14 tests in 0.038s
 OK
 ```
+
+The additional three tests cover the raw-action trace contract: exact model
+text is retained, missing or ambiguous actions become explicit voids, and
+invalid turn records fail closed.  No trace is silently converted into a
+successful repair.
 
 ## Runtime import check
 

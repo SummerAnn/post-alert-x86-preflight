@@ -95,7 +95,15 @@ jobs:
               py=/tmp/sregym-venv/bin/python
               export PYTHONPATH="$GITHUB_WORKSPACE/feasibility:/tmp/SREGym"
             fi
-            "$py" "$GITHUB_WORKSPACE/feasibility/run_cross_system_agent_pilot.py" --system "$system" --out-root "$GITHUB_WORKSPACE/results"
+            for condition in availability_only_alert security_preservation_contract; do
+              for model in gpt-6.1-sol claude-sonnet-4-6; do
+                for rep in 0 1 2; do
+                  "$py" "$GITHUB_WORKSPACE/feasibility/run_cross_system_agent_pilot.py" \
+                    --system "$system" --condition "$condition" --model "$model" --rep "$rep" \
+                    --out-root "$GITHUB_WORKSPACE/results"
+                done
+              done
+            done
           done
 
       - name: Analyze completed cells without imputation

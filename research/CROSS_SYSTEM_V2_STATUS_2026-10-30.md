@@ -20,16 +20,20 @@ The SREGym half is complete on a native amd64 GitHub-hosted runner:
   deployment args, unauthenticated MongoDB ping succeeds;
 - model/provider calls: zero.
 
-The AIOpsLab x86 authorization workflow currently verifies only the secure arm.
-The required paired x86 control (secure arm plus availability-first arm) does
-not yet exist as evidence. Therefore the v2 preflight fails closed and no model
-calls are authorized. The next concrete action is to add and run that one
-zero-model AIOpsLab paired control; only if it passes should the adapter dry run
-and the 24-call pilot be considered.
+The AIOpsLab paired x86 control was run after the workflow was added manually.
+It is **ineligible** for the frozen gate: the released revoke/recover scripts
+made the role state observable before evaluation, but the restored
+`admin`/`readWrite@geo-db` state was not observable after a fresh MongoDB pod.
+The workflow failed closed and tore down the cluster.  See
+`research/AIOPSLAB_REVOKE_AUTH_PAIRED_ZERO_MODEL_RESULT_2026-10-30.md` and
+run [41147298630](https://github.com/SummerAnn/post-alert-x86-preflight/actions/runs/41147298630).
 
-I prepared the native-amd64 paired-control workflow, but the connected GitHub
-integration rejected the repository write with HTTP 403. No public workflow was
-changed, and no runner or model call was started. The local protocol and
-preflight remain the source of truth until that write is authorized or the
-workflow is added manually.
+This is a substrate precondition failure, not an agent or evaluator result:
+the pinned AIOpsLab release is not currently a valid durable-recovery substrate
+for this protocol.  The SREGym paired control remains a separate zero-model
+pass, but the cross-system study remains blocked and no model calls are
+authorized.  A retry is not justified unless the AIOpsLab deployment is first
+changed to provide declared persistent MongoDB state and that change is itself
+frozen as a new protocol; that would be a new substrate, not a continuation of
+the current preregistration.
 

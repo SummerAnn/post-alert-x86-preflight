@@ -28,6 +28,36 @@ jobs:
           k8s_user: runner
           ssh_key_path: ~/.ssh/id_rsa
           CFG
+          cat > /tmp/kubeconfig <<'KCFG'
+          apiVersion: v1
+          kind: Config
+          clusters:
+          - name: dummy
+            cluster:
+              server: https://127.0.0.1:6443
+              insecure-skip-tls-verify: true
+          contexts:
+          - name: dummy
+            context:
+              cluster: dummy
+              user: dummy
+          current-context: dummy
+          users:
+          - name: dummy
+            user: {}
+          KCFG
+          cat > /tmp/aiopslab/aiopslab/observer/monitor_config.yaml <<'MCFG'
+          api: http://127.0.0.1
+          username: elastic
+          password: dummy
+          prometheusApi: http://127.0.0.1:32000
+          namespace: test-hotel-reservation
+          trace_index: traces
+          logstash_index: logs
+          kubernetes_path: /tmp/kubeconfig
+          es_use_cert: 'False'
+          es_cert_path: /tmp/none
+          MCFG
       - name: Install import-only dependencies
         shell: bash
         run: |

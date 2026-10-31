@@ -47,3 +47,11 @@ summary in the pinned x86 runner, then verify raw action traces, fresh-process
 probes, and fail-closed void handling.  Only after that should a model-call
 authorization be considered.
 
+The raw-action safeguard is now implemented in
+`feasibility/action_trace_contract.py` and covered by the combined 14-test
+suite: exact model text is retained, missing/ambiguous actions are explicit
+voids, and invalid records fail closed.  This is still instrumentation, not
+agent evidence.  The next claim-bearing step is the frozen 24-call pilot; it
+requires a new explicit authorization because the preregistration remains
+`model_calls_authorized: false`.
+

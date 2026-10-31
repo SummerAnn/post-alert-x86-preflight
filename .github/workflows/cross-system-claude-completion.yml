@@ -1,0 +1,122 @@
+name: Complete voided Claude cells
+
+on:
+  workflow_dispatch:
+
+jobs:
+  completion:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 420
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - name: Check out the frozen protocol
+        uses: actions/checkout@v4
+        with:
+          ref: pilot-runner
+      - name: Assert native amd64 runner and masked secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "x86_64"
+          docker info --format 'server={{.ServerVersion}} arch={{.Architecture}}'
+          test -n "${OPENAI_API_KEY:-}"
+          test -n "${ANTHROPIC_API_KEY:-}"
+      - name: Install Kind and uv
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSLo /tmp/kind https://kind.sigs.k8s.io/dl/v0.27.0/kind-linux-amd64
+          echo 'a6875aaea358acf0ac07786b1a6755d08fd640f4c79b7a2e46681cc13f49a04b  /tmp/kind' | sha256sum -c -
+          chmod +x /tmp/kind
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          uv --version
+      - name: Fetch exact released systems and application submodules
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --recurse-submodules --filter=blob:none https://github.com/microsoft/AIOpsLab.git /tmp/aiopslab-live
+          git -C /tmp/aiopslab-live checkout --detach 576c3f080c7ae2459a972afd4a2f8d5f01828430
+          git -C /tmp/aiopslab-live submodule update --init --recursive
+          test "$(git -C /tmp/aiopslab-live/aiopslab-applications rev-parse HEAD)" = 8038be6b4989c647126f27715acc591c47133c2d
+          git clone --recurse-submodules --filter=blob:none https://github.com/SREGym/SREGym.git /tmp/SREGym
+          git -C /tmp/SREGym checkout --detach be7dc36178c8709ddb15fb11804dadb12e1e62f4
+          git -C /tmp/SREGym submodule update --init --recursive
+          test "$(git -C /tmp/SREGym/SREGym-applications rev-parse HEAD)" = b2006cb6458785c1b353d0fd1753db7fe3a30795
+      - name: Install isolated environments with compatible Anthropic SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv venv --python 3.12 /tmp/aiopslab-venv
+          uv pip install --python /tmp/aiopslab-venv/bin/python -e /tmp/aiopslab-live
+          uv pip install --upgrade --python /tmp/aiopslab-venv/bin/python openai "anthropic==0.96.0"
+          uv venv --python 3.12 /tmp/sregym-venv
+          uv pip install --python /tmp/sregym-venv/bin/python -e /tmp/SREGym
+          uv pip install --upgrade --python /tmp/sregym-venv/bin/python openai "anthropic==0.96.0"
+          for py in /tmp/aiopslab-venv/bin/python /tmp/sregym-venv/bin/python; do
+            "$py" - <<'PY'
+          import anthropic, inspect
+          assert "temperature" in inspect.signature(anthropic.Anthropic().messages.create).parameters
+          print("Anthropic SDK signature check passed")
+          PY
+          done
+      - name: Configure AIOpsLab
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp /tmp/aiopslab-live/aiopslab/config.yml.example /tmp/aiopslab-live/aiopslab/config.yml
+          sed -i 's/^k8s_host:.*/k8s_host: kind/' /tmp/aiopslab-live/aiopslab/config.yml
+          sed -i 's/^k8s_user:.*/k8s_user: runner/' /tmp/aiopslab-live/aiopslab/config.yml
+          sed -i 's#^ssh_key_path:.*#ssh_key_path: /tmp/empty_id_rsa#' /tmp/aiopslab-live/aiopslab/config.yml
+          touch /tmp/empty_id_rsa
+      - name: Create native x86 Kind cluster
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/kind create cluster --name kind --config /tmp/aiopslab-live/kind/kind-config-x86.yaml --wait 180s
+          test "$(kubectl get nodes -o jsonpath='{.items[0].status.nodeInfo.architecture}')" = "amd64"
+      - name: Run the 12 previously voided Claude cells
+        shell: bash
+        run: |
+          set -euo pipefail
+          for system in aiopslab_revoke_auth_mongodb sregym_revoke_auth_mongodb; do
+            if test "$system" = aiopslab_revoke_auth_mongodb; then
+              py=/tmp/aiopslab-venv/bin/python
+              export PYTHONPATH="$GITHUB_WORKSPACE/feasibility:/tmp/aiopslab-live"
+            else
+              py=/tmp/sregym-venv/bin/python
+              export PYTHONPATH="$GITHUB_WORKSPACE/feasibility:/tmp/SREGym"
+            fi
+            for condition in availability_only_alert security_preservation_contract; do
+              for rep in 0 1 2; do
+                set +e
+                "$py" "$GITHUB_WORKSPACE/feasibility/run_cross_system_agent_pilot.py" \
+                  --system "$system" --condition "$condition" --model claude-sonnet-4-6 --rep "$rep" \
+                  --out-root "$GITHUB_WORKSPACE/results"
+                rc=$?
+                set -e
+                if test "$rc" -ne 0 && test "$rc" -ne 2; then exit "$rc"; fi
+              done
+            done
+          done
+      - name: Analyze completed cells without imputation
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test -d results; then
+            /tmp/aiopslab-venv/bin/python feasibility/analyze_cross_system_agent_pilot.py --root results --out results/summary.json
+          fi
+      - name: Upload Claude completion records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-system-claude-completion
+          path: results/
+          if-no-files-found: warn
+      - name: Delete disposable cluster
+        if: always()
+        run: /tmp/kind delete cluster --name kind

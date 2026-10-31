@@ -36,3 +36,12 @@ frozen prompts, action loop, raw traces, and independent security/function/
 durability probes without making provider requests.  The 24-call model pilot
 remains unauthorized until that dry run is recorded.
 
+The adapter contract dry run is now recorded in
+`research/ADAPTER_DRY_RUN_2026-10-30.md`: 11 local contract/oracle tests pass
+with zero provider requests, and the condition difference is exactly the frozen
+preservation suffix.  The remaining blocker is runtime packaging, not protocol
+logic: the current local environment lacks released AIOpsLab/SREGym dependencies
+(`tiktoken`/`kubernetes`).  The next step is to execute this same dry run in the
+pinned x86 release environment.  Only after that execution is captured should a
+model-call authorization be considered.
+

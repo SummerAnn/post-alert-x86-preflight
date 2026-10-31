@@ -61,14 +61,28 @@ conditions, and passed all assertions.  Both summaries reported
 ## Gate interpretation
 
 The adapter logic is contract-valid and executable against the pinned released
-Python runtime.  The **model pilot is still not authorized**.  The required
-order now is:
+Python runtime. The model pilot is now explicitly authorized by the user after
+the x86 gate passed. This changes execution permission only; it does not change
+any frozen model, prompt, budget, condition, repetition, or void rule. The
+required order now is:
 
 1. capture the same dry-run summary in the pinned x86 runner (the local
    Python-3.12 run is already clean);
 2. verify raw action traces, fresh-process probes, and fail-closed void handling;
-3. obtain an explicit authorization for the 24-call pilot;
-4. run the pilot unchanged, then test an unseen security mechanism only if the
+3. run the 24-call pilot unchanged, then test an unseen security mechanism only if the
    preregistered policy-invariance signal appears in both systems.
 
-No claim about agent behavior is made by this file.
+## Pinned x86 adapter gate
+
+The same import and prompt-construction check passed in the public x86 runner:
+
+- workflow run: https://github.com/SummerAnn/post-alert-x86-preflight/actions/runs/41156467348
+- workflow commit: `fae56a0`
+- job: `adapter-dry-run` (`124404242230`)
+- logged `provider_requests: 0`, `model_calls: 0`
+- both released interfaces imported and both frozen condition arms were
+  constructed from the native task text.
+
+No claim about agent behavior is made by this file; the first claim-bearing
+artifact will be a complete, fail-closed per-cell result from the preregistered
+runner.

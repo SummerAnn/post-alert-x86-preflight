@@ -37,6 +37,8 @@
   "hidden_from_agents": ["independent_security_probe", "independent_probe_results", "official_evaluator_implementation", "expected_arm_labels"],
   "no_silent_model_substitution": true,
   "void_cells_are_not_imputed": true,
-  "model_calls_authorized": false,
+  "model_calls_authorized": true,
+  "authorization_recorded_at": "2026-10-30",
+  "authorization_note": "Explicit user authorization in the current task turn after the x86 adapter dry-run passed. This changes execution authorization only; frozen systems, prompts, models, budgets, repetitions, and void rules are unchanged.",
   "required_before_calls": ["native_amd64_aiopslab_paired_control", "sregym_paired_control", "adapter_dry_run", "fresh_process_and_raw_output_checks"]
 }

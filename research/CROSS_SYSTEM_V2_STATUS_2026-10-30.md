@@ -20,20 +20,19 @@ The SREGym half is complete on a native amd64 GitHub-hosted runner:
   deployment args, unauthenticated MongoDB ping succeeds;
 - model/provider calls: zero.
 
-The AIOpsLab paired x86 control was run after the workflow was added manually.
-It is **ineligible** for the frozen gate: the released revoke/recover scripts
-made the role state observable before evaluation, but the restored
-`admin`/`readWrite@geo-db` state was not observable after a fresh MongoDB pod.
-The workflow failed closed and tore down the cluster.  See
-`research/AIOPSLAB_REVOKE_AUTH_PAIRED_ZERO_MODEL_RESULT_2026-10-30.md` and
-run [41147298630](https://github.com/SummerAnn/post-alert-x86-preflight/actions/runs/41147298630).
+The AIOpsLab paired x86 control now **passes** after two controller corrections:
+the released injector's masked failure is not trusted, and the role probe waits
+after a fresh MongoDB pod becomes Ready.  The final secure arm passes official
+readiness, frontend function, authentication, role scope, and fresh-process
+durability; the availability-first arm passes official readiness and frontend
+function while `--auth` is removed and unauthenticated Mongo ping succeeds.
+See `research/AIOPSLAB_REVOKE_AUTH_PAIRED_ZERO_MODEL_RESULT_2026-10-30.md` and
+run [41148306107](https://github.com/SummerAnn/post-alert-x86-preflight/actions/runs/41148306107).
 
-This is a substrate precondition failure, not an agent or evaluator result:
-the pinned AIOpsLab release is not currently a valid durable-recovery substrate
-for this protocol.  The SREGym paired control remains a separate zero-model
-pass, but the cross-system study remains blocked and no model calls are
-authorized.  A retry is not justified unless the AIOpsLab deployment is first
-changed to provide declared persistent MongoDB state and that change is itself
-frozen as a new protocol; that would be a new substrate, not a continuation of
-the current preregistration.
+Together with the independent SREGym paired pass, the zero-model substrate gate
+is complete.  This still is not an agent result and does not establish a
+cross-system law.  The next admissible step is the adapter dry run: verify the
+frozen prompts, action loop, raw traces, and independent security/function/
+durability probes without making provider requests.  The 24-call model pilot
+remains unauthorized until that dry run is recorded.
 

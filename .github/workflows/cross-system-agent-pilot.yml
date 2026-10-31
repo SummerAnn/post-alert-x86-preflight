@@ -1,8 +1,6 @@
 name: Cross-system post-alert recovery pilot
-
 on:
   workflow_dispatch:
-
 jobs:
   pilot:
     runs-on: ubuntu-24.04
@@ -12,9 +10,8 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
-      - name: Check out the protocol repository
+      - name: Check out the frozen protocol
         uses: actions/checkout@v4
-
       - name: Assert native amd64 Docker runner
         shell: bash
         run: |
@@ -23,7 +20,6 @@ jobs:
           docker info --format 'server={{.ServerVersion}} arch={{.Architecture}}'
           test -n "${OPENAI_API_KEY:-}"
           test -n "${ANTHROPIC_API_KEY:-}"
-
       - name: Install Kind and uv
         shell: bash
         run: |
@@ -34,8 +30,7 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           curl -LsSf https://astral.sh/uv/install.sh | sh
           uv --version
-
-      - name: Fetch the exact released systems and submodules
+      - name: Fetch exact released systems and application submodules
         shell: bash
         run: |
           set -euo pipefail
@@ -49,26 +44,20 @@ jobs:
           git -C /tmp/SREGym submodule update --init --recursive
           test "$(git -C /tmp/SREGym rev-parse HEAD)" = be7dc36178c8709ddb15fb11804dadb12e1e62f4
           test "$(git -C /tmp/SREGym/SREGym-applications rev-parse HEAD)" = b2006cb6458785c1b353d0fd1753db7fe3a30795
-
-      - name: Fetch the pinned pilot code from the reviewed branch
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p feasibility research
-          base=https://raw.githubusercontent.com/SummerAnn/post-alert-x86-preflight/0d0c54e30dbcf45295ee2f2e558ac54d12a4ec45
-          for f in run_cross_system_agent_pilot.py analyze_cross_system_agent_pilot.py cross_system_adapters.py cross_system_prompts.py aiopslab_recovery_oracle.py run_sregym_revoke_auth_control.py; do
-            curl -fsSL "$base/feasibility/$f" -o "feasibility/$f"
-          done
-          curl -fsSL "$base/research/PREREG_CROSS_SYSTEM_AGENT_RECOVERY_V2_2026-10-30.json" -o research/PREREG_CROSS_SYSTEM_AGENT_RECOVERY_V2_2026-10-30.json
-
       - name: Install the released Python environments
         shell: bash
         run: |
           set -euo pipefail
-          uv venv --python 3.12 /tmp/pilot-venv
-          uv pip install --python /tmp/pilot-venv/bin/python -e /tmp/aiopslab-live -e /tmp/SREGym
-          uv pip install --python /tmp/pilot-venv/bin/python openai anthropic
-
+          # The released systems declare incompatible paramiko ranges. Keep
+          # each unmodified release in its own environment; the pilot driver
+          # runs once per system and writes into the same immutable results
+          # tree. This changes no source, prompts, models, or scoring.
+          uv venv --python 3.12 /tmp/aiopslab-venv
+          uv pip install --python /tmp/aiopslab-venv/bin/python -e /tmp/aiopslab-live
+          uv pip install --python /tmp/aiopslab-venv/bin/python openai anthropic
+          uv venv --python 3.12 /tmp/sregym-venv
+          uv pip install --python /tmp/sregym-venv/bin/python -e /tmp/SREGym
+          uv pip install --python /tmp/sregym-venv/bin/python openai anthropic
       - name: Configure AIOpsLab for the disposable Kind cluster
         shell: bash
         run: |
@@ -78,7 +67,6 @@ jobs:
           sed -i 's/^k8s_user:.*/k8s_user: runner/' /tmp/aiopslab-live/aiopslab/config.yml
           sed -i 's#^ssh_key_path:.*#ssh_key_path: /tmp/empty_id_rsa#' /tmp/aiopslab-live/aiopslab/config.yml
           touch /tmp/empty_id_rsa
-
       - name: Create the native x86 Kind cluster
         shell: bash
         run: |
@@ -86,31 +74,27 @@ jobs:
           /tmp/kind create cluster --name kind --config /tmp/aiopslab-live/kind/kind-config-x86.yaml --wait 180s
           kubectl get nodes -o wide
           test "$(kubectl get nodes -o jsonpath='{.items[0].status.nodeInfo.architecture}')" = "amd64"
-
-      - name: Run the authorized 24-cell pilot
+      - name: Run the frozen 24-cell pilot
         shell: bash
         run: |
           set -euo pipefail
-          export PYTHONPATH="$GITHUB_WORKSPACE/feasibility:/tmp/aiopslab-live:/tmp/SREGym"
-          /tmp/pilot-venv/bin/python feasibility/run_cross_system_agent_pilot.py --out-root "$GITHUB_WORKSPACE/results"
-
-      - name: Analyze completed cells without imputation
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          if test -d results; then
-            /tmp/pilot-venv/bin/python feasibility/analyze_cross_system_agent_pilot.py --root results --out results/summary.json
-          fi
-
-      - name: Upload raw cell records and summary
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cross-system-agent-pilot-results
-          path: results/
-          if-no-files-found: warn
-
-      - name: Delete the disposable cluster
-        if: always()
-        run: /tmp/kind delete cluster --name kind
+          export PYTHONPATH="$GITHUB_WORKSPACE/feasibility"
+          for system in aiopslab_revoke_auth_mongodb sregym_revoke_auth_mongodb; do
+            if test "$system" = aiopslab_revoke_auth_mongodb; then
+              py=/tmp/aiopslab-venv/bin/python
+            else
+              py=/tmp/sregym-venv/bin/python
+            fi
+            "$py" - "$system" "$GITHUB_WORKSPACE/results" <<'PY'
+          import itertools
+          import sys
+          from pathlib import Path
+          from run_cross_system_agent_pilot import CONDITIONS, MODELS, run_cell
+          system, root = sys.argv[1], Path(sys.argv[2])
+          failures = 0
+          for condition, model, rep in itertools.product(CONDITIONS, MODELS, range(3)):
+              out = root / system / condition / model / f"rep_{rep}.json"
+              print({"starting_cell": [system, condition, model, rep], "out": str(out)}, flush=True)
+              row = run_cell(system, condition, model, rep, out)
+              print({"finished_cell": [system, condition, model, rep], "status": row.get("status"), "provider_requests": row.get("provider_requests", 0)}, flush=True)
+              if row.get("status", "").startswith("void_

@@ -1,8 +1,7 @@
 # Cross-system agent adapter dry run — 2026-10-30
 
-Status: **contract pass; released-runtime import gate incomplete**. No model or
-provider requests were made, no Kubernetes episode was started, and no hidden
-oracle state was read.
+Status: **PASS**. No model or provider requests were made, no Kubernetes episode
+was started, and no hidden oracle state was read.
 
 ## What was exercised
 
@@ -33,33 +32,35 @@ OK
 
 ## Runtime import check
 
-`feasibility/adapter_preflight.py` was also run against the pinned source
-checkouts both before and after installing the declared lightweight runtime
-dependencies in an isolated environment. Prompt modules import, but the local
-interpreter is macOS Python **3.9.6**, while the pinned releases require Python
-3.11--3.12:
+`feasibility/adapter_preflight.py` was first run against the system Python 3.9.6
+and correctly failed closed because the pinned releases require Python 3.11--
+3.12.  A disposable Python **3.12.9** environment was then created with the
+declared runtime dependencies.  In that environment all released adapter paths
+imported successfully:
 
 | released path | local result |
 |---|---|
 | AIOpsLab prompt template | importable |
-| AIOpsLab ReAct/orchestrator | blocked by Python-3.9-incompatible type syntax (`type | type`) |
+| AIOpsLab ReAct/orchestrator | importable |
 | SREGym prompt module | importable |
-| SREGym conductor | blocked by Python-3.9-incompatible `enum.StrEnum` |
+| SREGym conductor | importable |
 
-These are interpreter-compatibility failures, not agent or recovery results.
-The source-pinned x86 control runner has already shown that both live substrates
-can boot and pass the paired zero-model security/function/durability checks. The
-remaining mechanical work is to run this adapter contract inside that pinned
-x86/Python 3.12 environment and capture raw action-loop traces without making a
-provider request. The installed dependencies did not change the result, and no
-provider SDK call was made.
+The Python 3.9 failure was an environment issue, not an agent or recovery
+result.  The Python 3.12 rerun imported the released AIOpsLab `clients.react`
+agent path and `aiopslab.orchestrator`, plus SREGym's `mini_sre` prompt module
+and `sregym.conductor`.  It then constructed the native AIOpsLab system/user
+messages and native SREGym system/user messages, applied the two frozen
+conditions, and passed all assertions.  Both summaries reported
+`provider_requests: 0` and `model_calls: 0`.
 
 ## Gate interpretation
 
-The adapter logic is contract-valid, but the **model pilot is not yet
-authorized or executable** from this local runtime. The required order remains:
+The adapter logic is contract-valid and executable against the pinned released
+Python runtime.  The **model pilot is still not authorized**.  The required
+order now is:
 
-1. execute the adapter dry run in the pinned x86 release environments;
+1. capture the same dry-run summary in the pinned x86 runner (the local
+   Python-3.12 run is already clean);
 2. verify raw action traces, fresh-process probes, and fail-closed void handling;
 3. obtain an explicit authorization for the 24-call pilot;
 4. run the pilot unchanged, then test an unseen security mechanism only if the

@@ -37,12 +37,13 @@ durability probes without making provider requests.  The 24-call model pilot
 remains unauthorized until that dry run is recorded.
 
 The adapter contract dry run is now recorded in
-`research/ADAPTER_DRY_RUN_2026-10-30.md`: 11 local contract/oracle tests pass
-with zero provider requests, and the condition difference is exactly the frozen
-preservation suffix.  After installing the declared dependencies in an isolated
-environment, the remaining blocker is interpreter compatibility: this Mac has
-Python 3.9.6 while the pinned releases require Python 3.11--3.12.  The next
-step is to execute this same dry run in the pinned x86/Python 3.12 release
-environment.  Only after that execution is captured should a model-call
+`research/ADAPTER_DRY_RUN_2026-10-30.md`: 11 local contract/oracle tests pass,
+and a disposable Python 3.12.9 environment successfully imported the pinned
+AIOpsLab ReAct/orchestrator and SREGym mini-SRE/conductor paths, constructed the
+native messages, and applied both frozen conditions with zero provider
+requests.  The system Python 3.9.6 failure was correctly treated as an
+environment mismatch.  The remaining mechanical step is to capture this same
+summary in the pinned x86 runner, then verify raw action traces, fresh-process
+probes, and fail-closed void handling.  Only after that should a model-call
 authorization be considered.
 

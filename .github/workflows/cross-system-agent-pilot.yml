@@ -60,10 +60,10 @@ jobs:
           # conflict. This changes no source, prompts, models, or scoring.
           uv venv --python 3.12 /tmp/aiopslab-venv
           uv pip install --python /tmp/aiopslab-venv/bin/python -e /tmp/aiopslab-live
-          uv pip install --python /tmp/aiopslab-venv/bin/python openai anthropic
+          uv pip install --upgrade --python /tmp/aiopslab-venv/bin/python openai anthropic
           uv venv --python 3.12 /tmp/sregym-venv
           uv pip install --python /tmp/sregym-venv/bin/python -e /tmp/SREGym
-          uv pip install --python /tmp/sregym-venv/bin/python openai anthropic
+          uv pip install --upgrade --python /tmp/sregym-venv/bin/python openai anthropic
 
       - name: Configure AIOpsLab for the disposable Kind cluster
         shell: bash
@@ -98,9 +98,15 @@ jobs:
             for condition in availability_only_alert security_preservation_contract; do
               for model in gpt-6.1-sol claude-sonnet-4-6; do
                 for rep in 0 1 2; do
+                  set +e
                   "$py" "$GITHUB_WORKSPACE/feasibility/run_cross_system_agent_pilot.py" \
                     --system "$system" --condition "$condition" --model "$model" --rep "$rep" \
                     --out-root "$GITHUB_WORKSPACE/results"
+                  rc=$?
+                  set -e
+                  if test "$rc" -ne 0 && test "$rc" -ne 2; then
+                    exit "$rc"
+                  fi
                 done
               done
             done

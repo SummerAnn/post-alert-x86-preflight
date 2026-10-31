@@ -242,16 +242,16 @@ def _aiops_fresh_process(problem: Any) -> dict[str, Any]:
     while time.monotonic() < deadline:
         try:
             current = _aiops_mongo_pod(problem)
-            phase = _aiops_exec(
+            ready = _aiops_exec(
                 problem,
-                f"kubectl get pod -n test-hotel-reservation {shlex.quote(current)} -o jsonpath='{{.status.phase}}'",
+                f"kubectl wait -n test-hotel-reservation --for=condition=Ready pod/{shlex.quote(current)} --timeout=10s",
             )
-            if phase == "Running":
+            if "condition met" in ready or ready.endswith("condition met"):
                 return _aiops_role_probe(problem)
         except Exception:
             pass
         time.sleep(3)
-    raise RuntimeError("fresh AIOpsLab mongodb-geo pod did not become Running")
+    raise RuntimeError("fresh AIOpsLab mongodb-geo pod did not become Ready")
 
 
 def _score_snapshot(

@@ -21,13 +21,13 @@ jobs:
           git clone --filter=blob:none https://github.com/SREGym/SREGym.git /tmp/sregym
           git -C /tmp/sregym checkout --detach be7dc36178c8709ddb15fb11804dadb12e1e62f4
           cat > /tmp/aiopslab/aiopslab/config.yml <<'CFG'
-data_dir: data
-qualitative_eval: false
-print_session: false
-k8s_host: kind
-k8s_user: runner
-ssh_key_path: ~/.ssh/id_rsa
-CFG
+          data_dir: data
+          qualitative_eval: false
+          print_session: false
+          k8s_host: kind
+          k8s_user: runner
+          ssh_key_path: ~/.ssh/id_rsa
+          CFG
       - name: Install import-only dependencies
         shell: bash
         run: |

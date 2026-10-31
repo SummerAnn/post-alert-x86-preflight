@@ -68,6 +68,11 @@ def main() -> int:
         if not record.exists():
             errors.append(f"missing required paired-control record: {record.name}")
 
+    adapter_record = ROOT / "research/ADAPTER_DRY_RUN_2026-10-30.md"
+    checks[f"record_{adapter_record.name}"] = adapter_record.exists()
+    if not adapter_record.exists():
+        errors.append("missing required adapter dry-run record")
+
     checks["OPENAI_API_KEY_present"] = bool(os.environ.get("OPENAI_API_KEY"))
     checks["ANTHROPIC_API_KEY_present"] = bool(os.environ.get("ANTHROPIC_API_KEY"))
     docker_ok, docker_out = command("docker", "info", "--format", "{{.ServerVersion}}")
@@ -78,7 +83,7 @@ def main() -> int:
     checks["kubectl_nodes"] = kubectl_out if kubectl_ok else None
     if not kubectl_ok or not kubectl_out:
         errors.append("kubectl has no readable node")
-    checks["status"] = "blocked_until_aiopslab_native_x86_paired_control"
+    checks["status"] = "ready_for_pinned_x86_adapter_dry_run"
     print(json.dumps({"ready": not errors, "checks": checks, "errors": errors}, indent=2, sort_keys=True))
     return 0 if not errors else 1
 
